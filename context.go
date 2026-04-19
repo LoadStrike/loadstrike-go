@@ -25,3 +25,12 @@ func requireNativeContext(context *contextState) *contextState {
 	}
 	return context
 }
+
+// Run executes the configured context through the private runtime.
+func (c LoadStrikeContext) Run(args ...string) LoadStrikeRunResult {
+	result, err := requireNativeContext(c.nativeValue()).Run(args...)
+	if err != nil {
+		panic(err)
+	}
+	return newLoadStrikeRunResult(result)
+}

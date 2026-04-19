@@ -57,3 +57,8 @@ func (r LoadStrikeRunner) BuildContext() LoadStrikeContext {
 	state.scenarios = append([]scenarioDefinition(nil), state.scenarios...)
 	return wrapLoadStrikeContext(&state)
 }
+
+// Run builds a context snapshot and executes it through the private runtime.
+func (r LoadStrikeRunner) Run(args ...string) LoadStrikeRunResult {
+	return r.BuildContext().Run(args...)
+}
