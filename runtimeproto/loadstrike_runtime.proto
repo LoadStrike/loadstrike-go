@@ -1,0 +1,32 @@
+syntax = "proto3";
+
+package runtimeproto;
+
+option go_package = "loadstrike.com/sdk/go/runtimeproto";
+
+service HostRuntime {
+  rpc Handshake(HandshakeRequest) returns (HandshakeResponse);
+  rpc InvokeStep(InvokeStepRequest) returns (InvokeStepResponse);
+}
+
+message HandshakeRequest {
+  string sdk_version = 1;
+  int32 protocol_version = 2;
+}
+
+message HandshakeResponse {
+  string sdk_version = 1;
+  int32 protocol_version = 2;
+}
+
+message InvokeStepRequest {
+  string callback_id = 1;
+  string scenario_name = 2;
+  string step_name = 3;
+}
+
+message InvokeStepResponse {
+  bool is_success = 1;
+  string status_code = 2;
+  string message = 3;
+}
