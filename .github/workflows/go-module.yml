@@ -1,0 +1,75 @@
+name: go-module
+
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - "v*"
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Set up Go
+        uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+
+      - name: Validate module metadata
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          MODULE_PATH="$(go list -m)"
+          if [[ "${MODULE_PATH}" != "loadstrike.com/sdk/go" ]]; then
+            echo "::error::go.mod declares ${MODULE_PATH}, expected loadstrike.com/sdk/go."
+            exit 1
+          fi
+
+          MODULE_VERSION="$(python - <<'PY'
+          import re
+          from pathlib import Path
+
+          body = Path("version.go").read_text(encoding="utf-8")
+          match = re.search(r'moduleVersion\s*=\s*"([^"]+)"', body)
+          if not match:
+              raise SystemExit("moduleVersion constant not found in version.go")
+          print(match.group(1))
+          PY
+          )"
+
+          if [[ ! "${MODULE_VERSION}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::version.go must embed a stable semver tag such as v0.1.0."
+            exit 1
+          fi
+
+          if [[ "${GITHUB_REF_TYPE:-}" == "tag" && "${MODULE_VERSION}" != "${GITHUB_REF_NAME}" ]]; then
+            echo "::error::tag ${GITHUB_REF_NAME} does not match version.go (${MODULE_VERSION})."
+            exit 1
+          fi
+
+      - name: Run Go tests
+        run: go test ./...
+
+  release:
+    if: github.ref_type == 'tag'
+    runs-on: ubuntu-latest
+    needs:
+      - validate
+    permissions:
+      contents: write
+    steps:
+      - name: Create GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
