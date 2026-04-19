@@ -2,9 +2,9 @@ package loadstrike
 
 import (
 	"bytes"
-	"encoding/json"
 	"crypto/sha256"
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
@@ -15,13 +15,9 @@ import (
 )
 
 func (r runtimeArtifactResolver) expectedRuntimePath() string {
-	cacheDir := os.Getenv(envRuntimeCacheDir)
-	if cacheDir == "" {
-		if userCacheDir, err := os.UserCacheDir(); err == nil && userCacheDir != "" {
-			cacheDir = userCacheDir
-		} else {
-			cacheDir = os.TempDir()
-		}
+	cacheDir, err := os.UserCacheDir()
+	if err != nil || cacheDir == "" {
+		cacheDir = os.TempDir()
 	}
 
 	fileName := "loadstrike-runtime"
@@ -48,19 +44,11 @@ func verifyRuntimeArtifact(content []byte, expectedSHA256 string, _ string) erro
 }
 
 func (r runtimeArtifactResolver) resolveRuntimePath(runnerKey string) (string, error) {
-	if explicitPath := strings.TrimSpace(os.Getenv(envRuntimePath)); explicitPath != "" {
-		return explicitPath, nil
-	}
-
 	expectedPath := r.expectedRuntimePath()
 	if _, err := os.Stat(expectedPath); err == nil {
 		return expectedPath, nil
 	} else if !errorsIsNotExist(err) {
 		return "", fmt.Errorf("inspect cached runtime: %w", err)
-	}
-
-	if runtimeDownloadsDisabled() {
-		return "", ErrRuntimeDownloadDisabled
 	}
 
 	manifest, err := r.fetchRuntimeManifest(runnerKey)
@@ -154,11 +142,7 @@ func (r runtimeArtifactResolver) fetchRuntimeManifest(runnerKey string) (runtime
 }
 
 func runtimeResolveEndpoint() string {
-	baseURL := runtimeBaseURL()
-	if strings.HasSuffix(baseURL, "/api/v1/runtime-artifacts/resolve") {
-		return baseURL
-	}
-	return baseURL + "/api/v1/runtime-artifacts/resolve"
+	return runtimeServiceBaseURL + "/api/v1/runtime-artifacts/resolve"
 }
 
 func runtimeHTTPClient() *http.Client {

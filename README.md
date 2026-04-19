@@ -1,12 +1,13 @@
 # LoadStrike Go SDK
 
-The public Go wrapper for LoadStrike is installed as `loadstrike.com/sdk/go`.
+LoadStrike lets Go teams model transaction-focused load tests directly in code.
 
-It preserves the callback-style authoring model shown in the website docs, but it does not expose the private execution engine source.
+Use the Go SDK to define scenarios and named steps, apply load simulations and thresholds, and review structured results using the same language and workflow your team already uses for application development.
 
 ## Requirements
 
 - Go 1.24 or later
+- A valid LoadStrike runner key for runnable workloads
 
 ## Install
 
@@ -18,22 +19,52 @@ go get loadstrike.com/sdk/go
 import loadstrike "loadstrike.com/sdk/go"
 ```
 
-## Runtime Delivery
+## Quick Start
 
-On first run, the public wrapper resolves the exact matching private `loadstrike-runtime` binary for the current platform, verifies it, caches it locally, and runs the workload through that runtime.
+```go
+package main
 
-The wrapper version and runtime version are locked together so the public API and private engine do not drift.
+import (
+	loadstrike "loadstrike.com/sdk/go"
+)
 
-## Local Development Overrides
+func main() {
+	scenario := loadstrike.CreateScenario("orders", func(ctx loadstrike.LoadStrikeScenarioContext) loadstrike.LoadStrikeReply {
+		return loadstrike.LoadStrikeStep.Run("publish-order", ctx, func(loadstrike.LoadStrikeScenarioContext) loadstrike.LoadStrikeReply {
+			return loadstrike.LoadStrikeResponse.Ok("200")
+		})
+	}).WithLoadSimulations(
+		loadstrike.LoadStrikeSimulation.IterationsForConstant(1, 10),
+	)
 
-- `LOADSTRIKE_RUNTIME_PATH`: use a prebuilt local runtime binary instead of downloading one
-- `LOADSTRIKE_RUNTIME_BASE_URL`: override the licensing API base URL used to resolve runtime manifests
-- `LOADSTRIKE_RUNTIME_CACHE_DIR`: override the local runtime cache directory
-- `LOADSTRIKE_RUNTIME_NO_DOWNLOAD=1`: disable first-run downloads
-- `LOADSTRIKE_DEV_USE_LOCAL_CLIENT=1`: use the local in-process stub for host-side tests
+	result := loadstrike.Create().
+		AddScenario(scenario).
+		WithRunnerKey("rkl_your_runner_key").
+		WithoutReports().
+		Run()
 
-## Verification
-
-```bash
-go test ./...
+	_ = result
+}
 ```
+
+## What You Can Build
+
+- scenario-based load tests with named steps
+- transaction flows across HTTP and event-driven systems
+- custom metrics, thresholds, and structured reports
+- local report output in HTML, TXT, CSV, and Markdown
+- distributed and clustered execution on supported plans
+- observability and reporting integrations on supported plans
+
+Built-in transport coverage includes HTTP, Kafka, RabbitMQ, NATS, Redis Streams, Azure Event Hubs, Push Diffusion, and delegate-based custom streams.
+
+## Runner Keys
+
+Runnable workloads require a valid `RunnerKey`.
+
+Supply it with `.WithRunnerKey(...)` or through your application configuration before calling `Run()`.
+
+## Documentation
+
+- Product docs: https://loadstrike.com/documentation
+- Sample reference: https://github.com/LoadStrike/loadstrike-sdk-sample-reference

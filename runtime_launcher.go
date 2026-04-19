@@ -34,20 +34,12 @@ func (c *contextState) Run(args ...string) (runSummary, error) {
 	if strings.TrimSpace(c.RunnerKey) == "" {
 		return runSummary{}, errMissingRunnerKey
 	}
-	return launchRuntimeRun(c)
-}
-
-func launchRuntimeRun(contextState *contextState) (runSummary, error) {
-	if os.Getenv(envAllowLocalStub) == "1" {
-		return runWithLocalStub(contextState), nil
-	}
-
-	plan, registry, err := buildRuntimePlan(contextState)
+	plan, registry, err := buildRuntimePlan(c)
 	if err != nil {
 		return runSummary{}, err
 	}
 
-	return runViaPrivateRuntime(contextState, plan, registry)
+	return runViaPrivateRuntime(c, plan, registry)
 }
 
 func runViaPrivateRuntime(contextState *contextState, plan runtimePlan, registry *runtimeCallbackRegistry) (runSummary, error) {
@@ -159,64 +151,6 @@ func (h *runtimeHostHandle) Close() {
 	}
 
 	_ = h.listener.Close()
-}
-
-func runWithLocalStub(contextState *contextState) runSummary {
-	var result runSummary
-	for _, scenario := range contextState.scenarios {
-		requestCount := plannedRequestCount(scenario.LoadSimulations)
-		scenarioSummary := scenarioRunSummary{
-			ScenarioName:    scenario.Name,
-			AllRequestCount: requestCount,
-		}
-
-		stepName := scenario.Name
-		if len(scenario.Steps) > 0 && strings.TrimSpace(scenario.Steps[0].Name) != "" {
-			stepName = scenario.Steps[0].Name
-		}
-
-		for iteration := 0; iteration < requestCount; iteration++ {
-			reply := scenario.Steps[0].Run(&stepRuntimeContext{
-				ScenarioName: scenario.Name,
-				StepName:     stepName,
-			})
-			if reply.IsSuccess {
-				scenarioSummary.AllOKCount++
-				result.AllOKCount++
-			} else {
-				scenarioSummary.AllFailCount++
-				result.AllFailCount++
-			}
-		}
-
-		result.AllRequestCount += requestCount
-		result.ScenarioStats = append(result.ScenarioStats, scenarioSummary)
-	}
-
-	return result
-}
-
-func plannedRequestCount(loadSimulations []LoadSimulation) int {
-	if len(loadSimulations) == 0 {
-		return 1
-	}
-
-	total := 0
-	for _, item := range loadSimulations {
-		copies := item.Copies
-		iterations := item.Iterations
-		if copies <= 0 {
-			copies = 1
-		}
-		if iterations <= 0 {
-			iterations = 1
-		}
-		total += copies * iterations
-	}
-	if total <= 0 {
-		return 1
-	}
-	return total
 }
 
 func runtimeDialContext(timeout time.Duration) (context.Context, context.CancelFunc) {
