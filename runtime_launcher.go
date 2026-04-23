@@ -124,6 +124,7 @@ func startRuntimeHostServer(registry *runtimeCallbackRegistry) (*runtimeHostHand
 	}, nil
 }
 
+// Close releases owned resources. Use this when the current SDK object is no longer needed.
 func (h *runtimeHostHandle) Close() {
 	if h == nil {
 		return

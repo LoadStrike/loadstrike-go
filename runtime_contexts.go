@@ -34,13 +34,19 @@ func (l *LoadStrikeLogger) log(level string, format string, args ...any) {
 	l.write(level, message)
 }
 
+// Verbose exposes the verbose operation. Use this when interacting with the SDK through this surface.
 func (l *LoadStrikeLogger) Verbose(format string, args ...any) { l.log("Verbose", format, args...) }
+// Debug exposes the debug operation. Use this when interacting with the SDK through this surface.
 func (l *LoadStrikeLogger) Debug(format string, args ...any)   { l.log("Debug", format, args...) }
+// Information exposes the information operation. Use this when interacting with the SDK through this surface.
 func (l *LoadStrikeLogger) Information(format string, args ...any) {
 	l.log("Information", format, args...)
 }
+// Warning exposes the warning operation. Use this when interacting with the SDK through this surface.
 func (l *LoadStrikeLogger) Warning(format string, args ...any) { l.log("Warning", format, args...) }
+// Error returns the current error text. Use this when you need the readable failure message.
 func (l *LoadStrikeLogger) Error(format string, args ...any)   { l.log("Error", format, args...) }
+// Fatal exposes the fatal operation. Use this when interacting with the SDK through this surface.
 func (l *LoadStrikeLogger) Fatal(format string, args ...any)   { l.log("Fatal", format, args...) }
 
 // LoadStrikeScenarioInfo mirrors the .NET public runtime scenario metadata contract.
@@ -101,6 +107,7 @@ func newScenarioRandom(invocationNumber int) *LoadStrikeRandom {
 	return &LoadStrikeRandom{inner: rand.New(source)}
 }
 
+// String returns a string representation. Use this for logs, debugging, or display.
 func (o LoadStrikeOperationType) String() string {
 	switch o {
 	case LoadStrikeOperationTypeInit:
@@ -120,6 +127,7 @@ func (o LoadStrikeOperationType) String() string {
 	}
 }
 
+// Next exposes the next operation. Use this when interacting with the SDK through this surface.
 func (r *LoadStrikeRandom) Next(args ...int) int {
 	if r == nil || r.inner == nil {
 		return 0
@@ -142,6 +150,7 @@ func (r *LoadStrikeRandom) Next(args ...int) int {
 	}
 }
 
+// NextDouble exposes the next double operation. Use this when interacting with the SDK through this surface.
 func (r *LoadStrikeRandom) NextDouble() float64 {
 	if r == nil || r.inner == nil {
 		return 0
@@ -149,6 +158,7 @@ func (r *LoadStrikeRandom) NextDouble() float64 {
 	return r.inner.Float64()
 }
 
+// NextBytes exposes the next bytes operation. Use this when interacting with the SDK through this surface.
 func (r *LoadStrikeRandom) NextBytes(buffer []byte) {
 	if r == nil || r.inner == nil || len(buffer) == 0 {
 		return
@@ -156,6 +166,7 @@ func (r *LoadStrikeRandom) NextBytes(buffer []byte) {
 	_, _ = r.inner.Read(buffer)
 }
 
+// Sample exposes the sample operation. Use this when interacting with the SDK through this surface.
 func (r *LoadStrikeRandom) Sample(values any) any {
 	if r == nil || r.inner == nil || values == nil {
 		return nil

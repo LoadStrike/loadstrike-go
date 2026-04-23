@@ -186,6 +186,7 @@ func newLoadStrikeScenarioStats(native scenarioStats) LoadStrikeScenarioStats {
 	}
 }
 
+// FindStepStats finds step stats. Use this when you want an optional lookup from SDK state.
 func (s LoadStrikeScenarioStats) FindStepStats(stepName string) *LoadStrikeStepStats {
 	for index := range s.stepStats {
 		if s.stepStats[index].StepName == stepName {
@@ -195,6 +196,7 @@ func (s LoadStrikeScenarioStats) FindStepStats(stepName string) *LoadStrikeStepS
 	return nil
 }
 
+// GetStepStats returns step stats. Use this when you need to inspect SDK state.
 func (s LoadStrikeScenarioStats) GetStepStats(stepName string) *LoadStrikeStepStats {
 	value := s.FindStepStats(stepName)
 	if value == nil {
@@ -262,6 +264,7 @@ func newLoadStrikeNodeStats(native nodeStats) loadStrikeNodeStats {
 	}
 }
 
+// FindScenarioStats finds scenario stats. Use this when you want an optional lookup from SDK state.
 func (n loadStrikeNodeStats) FindScenarioStats(scenarioName string) *LoadStrikeScenarioStats {
 	for index := range n.scenarioStats {
 		if n.scenarioStats[index].ScenarioName == scenarioName {
@@ -271,6 +274,7 @@ func (n loadStrikeNodeStats) FindScenarioStats(scenarioName string) *LoadStrikeS
 	return nil
 }
 
+// GetScenarioStats returns scenario stats. Use this when you need to inspect SDK state.
 func (n loadStrikeNodeStats) GetScenarioStats(scenarioName string) *LoadStrikeScenarioStats {
 	value := n.FindScenarioStats(scenarioName)
 	if value == nil {
@@ -310,10 +314,12 @@ func (n loadStrikeNodeStats) toNative() nodeStats {
 	return native
 }
 
+// MarshalJSON serializes the current value to json. Use this when bridging SDK models to JSON payloads.
 func (n loadStrikeNodeStats) MarshalJSON() ([]byte, error) {
 	return json.Marshal(n.toNative())
 }
 
+// UnmarshalJSON populates the current value from json. Use this when rehydrating SDK models from JSON payloads.
 func (n *loadStrikeNodeStats) UnmarshalJSON(data []byte) error {
 	var native nodeStats
 	if err := json.Unmarshal(data, &native); err != nil {

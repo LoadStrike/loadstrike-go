@@ -35,6 +35,7 @@ func TaskFromErrorString(message string) LoadStrikeTask {
 
 type simpleTaskError string
 
+// Error returns the current error text. Use this when you need the readable failure message.
 func (e simpleTaskError) Error() string { return string(e) }
 
 // LoadStrikeValueTask mirrors a typed async contract in a Go-friendly shape.

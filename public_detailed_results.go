@@ -68,25 +68,40 @@ func (s LoadStrikeDetailedStepStats) toNative() stepStats {
 	}
 }
 
+// ScenarioName exposes the scenario name operation. Use this when interacting with the SDK through this surface.
 func (s LoadStrikeDetailedStepStats) ScenarioName() string { return s.scenarioName }
+// StepName exposes the step name operation. Use this when interacting with the SDK through this surface.
 func (s LoadStrikeDetailedStepStats) StepName() string     { return s.stepName }
+// AllRequestCount exposes the all request count operation. Use this when interacting with the SDK through this surface.
 func (s LoadStrikeDetailedStepStats) AllRequestCount() int { return s.allRequestCount }
+// OkCount exposes the ok count operation. Use this when interacting with the SDK through this surface.
 func (s LoadStrikeDetailedStepStats) OkCount() int         { return s.allOKCount }
+// FailCount exposes the fail count operation. Use this when interacting with the SDK through this surface.
 func (s LoadStrikeDetailedStepStats) FailCount() int       { return s.allFailCount }
+// TotalBytes exposes the total bytes operation. Use this when interacting with the SDK through this surface.
 func (s LoadStrikeDetailedStepStats) TotalBytes() int64    { return s.totalBytes }
+// TotalLatencyMS exposes the total latency ms operation. Use this when interacting with the SDK through this surface.
 func (s LoadStrikeDetailedStepStats) TotalLatencyMS() float64 {
 	return s.totalLatencyMS
 }
+// AvgLatencyMS exposes the avg latency ms operation. Use this when interacting with the SDK through this surface.
 func (s LoadStrikeDetailedStepStats) AvgLatencyMS() float64 { return s.avgLatencyMS }
+// MinLatencyMS exposes the min latency ms operation. Use this when interacting with the SDK through this surface.
 func (s LoadStrikeDetailedStepStats) MinLatencyMS() float64 { return s.minLatencyMS }
+// MaxLatencyMS exposes the max latency ms operation. Use this when interacting with the SDK through this surface.
 func (s LoadStrikeDetailedStepStats) MaxLatencyMS() float64 { return s.maxLatencyMS }
+// StatusCodes exposes the status codes operation. Use this when interacting with the SDK through this surface.
 func (s LoadStrikeDetailedStepStats) StatusCodes() map[string]int {
 	return cloneStatusCodeCounts(s.statusCodes)
 }
+// Ok exposes the ok operation. Use this when interacting with the SDK through this surface.
 func (s LoadStrikeDetailedStepStats) Ok() LoadStrikeMeasurementStats   { return s.ok }
+// Fail exposes the fail operation. Use this when interacting with the SDK through this surface.
 func (s LoadStrikeDetailedStepStats) Fail() LoadStrikeMeasurementStats { return s.fail }
+// SortIndex exposes the sort index operation. Use this when interacting with the SDK through this surface.
 func (s LoadStrikeDetailedStepStats) SortIndex() int                   { return s.sortIndex }
 
+// FindStepStats finds step stats. Use this when you want an optional lookup from SDK state.
 func (s LoadStrikeDetailedStepStats) FindStepStats(stepName string) *LoadStrikeDetailedStepStats {
 	if s.lookupFlavor != statsLookupFlavorRealtime {
 		validateStepStatsLookupName(stepName)
@@ -98,6 +113,7 @@ func (s LoadStrikeDetailedStepStats) FindStepStats(stepName string) *LoadStrikeD
 	return nil
 }
 
+// GetStepStats returns step stats. Use this when you need to inspect SDK state.
 func (s LoadStrikeDetailedStepStats) GetStepStats(stepName string) *LoadStrikeDetailedStepStats {
 	value := s.FindStepStats(stepName)
 	if value == nil {
@@ -197,37 +213,56 @@ func (s LoadStrikeDetailedScenarioStats) toNative() scenarioStats {
 	return native
 }
 
+// ScenarioName exposes the scenario name operation. Use this when interacting with the SDK through this surface.
 func (s LoadStrikeDetailedScenarioStats) ScenarioName() string { return s.scenarioName }
+// AllBytes exposes the all bytes operation. Use this when interacting with the SDK through this surface.
 func (s LoadStrikeDetailedScenarioStats) AllBytes() int64      { return s.allBytes }
+// AllRequestCount exposes the all request count operation. Use this when interacting with the SDK through this surface.
 func (s LoadStrikeDetailedScenarioStats) AllRequestCount() int { return s.allRequestCount }
+// AllOKCount exposes the all ok count operation. Use this when interacting with the SDK through this surface.
 func (s LoadStrikeDetailedScenarioStats) AllOKCount() int      { return s.allOKCount }
+// AllFailCount exposes the all fail count operation. Use this when interacting with the SDK through this surface.
 func (s LoadStrikeDetailedScenarioStats) AllFailCount() int    { return s.allFailCount }
+// TotalBytes exposes the total bytes operation. Use this when interacting with the SDK through this surface.
 func (s LoadStrikeDetailedScenarioStats) TotalBytes() int64    { return s.totalBytes }
+// TotalLatencyMS exposes the total latency ms operation. Use this when interacting with the SDK through this surface.
 func (s LoadStrikeDetailedScenarioStats) TotalLatencyMS() float64 {
 	return s.totalLatencyMS
 }
+// AvgLatencyMS exposes the avg latency ms operation. Use this when interacting with the SDK through this surface.
 func (s LoadStrikeDetailedScenarioStats) AvgLatencyMS() float64 { return s.avgLatencyMS }
+// MinLatencyMS exposes the min latency ms operation. Use this when interacting with the SDK through this surface.
 func (s LoadStrikeDetailedScenarioStats) MinLatencyMS() float64 { return s.minLatencyMS }
+// MaxLatencyMS exposes the max latency ms operation. Use this when interacting with the SDK through this surface.
 func (s LoadStrikeDetailedScenarioStats) MaxLatencyMS() float64 { return s.maxLatencyMS }
+// StatusCodes exposes the status codes operation. Use this when interacting with the SDK through this surface.
 func (s LoadStrikeDetailedScenarioStats) StatusCodes() map[string]int {
 	return cloneStatusCodeCounts(s.statusCodes)
 }
+// CurrentOperation exposes the current operation operation. Use this when interacting with the SDK through this surface.
 func (s LoadStrikeDetailedScenarioStats) CurrentOperation() string {
 	return s.currentOperation
 }
+// CurrentOperationType exposes the current operation type operation. Use this when interacting with the SDK through this surface.
 func (s LoadStrikeDetailedScenarioStats) CurrentOperationType() LoadStrikeOperationType {
 	return s.currentOperationType
 }
+// DurationMS exposes the duration ms operation. Use this when interacting with the SDK through this surface.
 func (s LoadStrikeDetailedScenarioStats) DurationMS() float64            { return s.durationMS }
+// Ok exposes the ok operation. Use this when interacting with the SDK through this surface.
 func (s LoadStrikeDetailedScenarioStats) Ok() LoadStrikeMeasurementStats { return s.ok }
+// Fail exposes the fail operation. Use this when interacting with the SDK through this surface.
 func (s LoadStrikeDetailedScenarioStats) Fail() LoadStrikeMeasurementStats {
 	return s.fail
 }
+// LoadSimulationStats loads simulation stats. Use this when configuration or runtime state should be read from external input.
 func (s LoadStrikeDetailedScenarioStats) LoadSimulationStats() LoadStrikeLoadSimulationStats {
 	return s.loadSimulationStats
 }
+// SortIndex exposes the sort index operation. Use this when interacting with the SDK through this surface.
 func (s LoadStrikeDetailedScenarioStats) SortIndex() int { return s.sortIndex }
 
+// FindStepStats finds step stats. Use this when you want an optional lookup from SDK state.
 func (s LoadStrikeDetailedScenarioStats) FindStepStats(stepName string) *LoadStrikeDetailedStepStats {
 	if s.lookupFlavor != statsLookupFlavorRealtime {
 		validateStepStatsLookupName(stepName)
@@ -242,6 +277,7 @@ func (s LoadStrikeDetailedScenarioStats) FindStepStats(stepName string) *LoadStr
 	return nil
 }
 
+// GetStepStats returns step stats. Use this when you need to inspect SDK state.
 func (s LoadStrikeDetailedScenarioStats) GetStepStats(stepName string) *LoadStrikeDetailedStepStats {
 	value := s.FindStepStats(stepName)
 	if value == nil {
@@ -253,6 +289,7 @@ func (s LoadStrikeDetailedScenarioStats) GetStepStats(stepName string) *LoadStri
 	return value
 }
 
+// StepStats exposes the step stats operation. Use this when interacting with the SDK through this surface.
 func (s LoadStrikeDetailedScenarioStats) StepStats() []LoadStrikeDetailedStepStats {
 	return append([]LoadStrikeDetailedStepStats(nil), s.stepStats...)
 }
@@ -398,54 +435,73 @@ func (r LoadStrikeRunResult) toNative() runResult {
 	return native
 }
 
+// StartedUtc exposes the started utc operation. Use this when interacting with the SDK through this surface.
 func (r LoadStrikeRunResult) StartedUtc() string {
 	if r.startedUTC.IsZero() {
 		return ""
 	}
 	return r.startedUTC.Format(time.RFC3339Nano)
 }
+// CompletedUtc exposes the completed utc operation. Use this when interacting with the SDK through this surface.
 func (r LoadStrikeRunResult) CompletedUtc() string {
 	if r.completedUTC.IsZero() {
 		return ""
 	}
 	return r.completedUTC.Format(time.RFC3339Nano)
 }
+// DurationMS exposes the duration ms operation. Use this when interacting with the SDK through this surface.
 func (r LoadStrikeRunResult) DurationMS() float64   { return r.durationMS }
+// AllBytes exposes the all bytes operation. Use this when interacting with the SDK through this surface.
 func (r LoadStrikeRunResult) AllBytes() int64       { return r.allBytes }
+// AllRequestCount exposes the all request count operation. Use this when interacting with the SDK through this surface.
 func (r LoadStrikeRunResult) AllRequestCount() int  { return r.allRequestCount }
+// AllOKCount exposes the all ok count operation. Use this when interacting with the SDK through this surface.
 func (r LoadStrikeRunResult) AllOKCount() int       { return r.allOKCount }
+// AllFailCount exposes the all fail count operation. Use this when interacting with the SDK through this surface.
 func (r LoadStrikeRunResult) AllFailCount() int     { return r.allFailCount }
+// FailedThresholds exposes the failed thresholds operation. Use this when interacting with the SDK through this surface.
 func (r LoadStrikeRunResult) FailedThresholds() int { return r.failedThresholds }
+// Thresholds exposes the thresholds operation. Use this when interacting with the SDK through this surface.
 func (r LoadStrikeRunResult) Thresholds() []LoadStrikeThresholdResult {
 	return append([]LoadStrikeThresholdResult(nil), r.thresholds...)
 }
+// ThresholdResults exposes the threshold results operation. Use this when interacting with the SDK through this surface.
 func (r LoadStrikeRunResult) ThresholdResults() []LoadStrikeThresholdResult {
 	return append([]LoadStrikeThresholdResult(nil), r.thresholdResults...)
 }
+// Metrics exposes the metrics operation. Use this when interacting with the SDK through this surface.
 func (r LoadStrikeRunResult) Metrics() []LoadStrikeMetricValue {
 	return append([]LoadStrikeMetricValue(nil), r.metrics...)
 }
+// ScenarioDurationsMS exposes the scenario durations ms operation. Use this when interacting with the SDK through this surface.
 func (r LoadStrikeRunResult) ScenarioDurationsMS() map[string]int64 {
 	return cloneInt64Map(r.scenarioDurationsMS)
 }
+// PluginsData exposes the plugins data operation. Use this when interacting with the SDK through this surface.
 func (r LoadStrikeRunResult) PluginsData() []LoadStrikePluginData {
 	return append([]LoadStrikePluginData(nil), r.pluginsData...)
 }
+// DisabledSinks exposes the disabled sinks operation. Use this when interacting with the SDK through this surface.
 func (r LoadStrikeRunResult) DisabledSinks() []string {
 	return append([]string(nil), r.disabledSinks...)
 }
+// SinkErrors exposes the sink errors operation. Use this when interacting with the SDK through this surface.
 func (r LoadStrikeRunResult) SinkErrors() []LoadStrikeSinkError {
 	return append([]LoadStrikeSinkError(nil), r.sinkErrors...)
 }
+// ReportFiles exposes the report files operation. Use this when interacting with the SDK through this surface.
 func (r LoadStrikeRunResult) ReportFiles() []string {
 	return append([]string(nil), r.reportFiles...)
 }
+// LogFiles exposes the log files operation. Use this when interacting with the SDK through this surface.
 func (r LoadStrikeRunResult) LogFiles() []string {
 	return append([]string(nil), r.logFiles...)
 }
+// PolicyErrors exposes the policy errors operation. Use this when interacting with the SDK through this surface.
 func (r LoadStrikeRunResult) PolicyErrors() []LoadStrikeRuntimePolicyError {
 	return append([]LoadStrikeRuntimePolicyError(nil), r.policyErrors...)
 }
+// CorrelationRows exposes the correlation rows operation. Use this when interacting with the SDK through this surface.
 func (r LoadStrikeRunResult) CorrelationRows() []map[string]any {
 	rows := make([]map[string]any, 0, len(r.correlationRows))
 	for _, row := range r.correlationRows {
@@ -453,6 +509,7 @@ func (r LoadStrikeRunResult) CorrelationRows() []map[string]any {
 	}
 	return rows
 }
+// FailedCorrelationRows exposes the failed correlation rows operation. Use this when interacting with the SDK through this surface.
 func (r LoadStrikeRunResult) FailedCorrelationRows() []map[string]any {
 	rows := make([]map[string]any, 0, len(r.failedCorrelationRows))
 	for _, row := range r.failedCorrelationRows {
@@ -461,6 +518,7 @@ func (r LoadStrikeRunResult) FailedCorrelationRows() []map[string]any {
 	return rows
 }
 
+// FindScenarioStats finds scenario stats. Use this when you want an optional lookup from SDK state.
 func (r LoadStrikeRunResult) FindScenarioStats(scenarioName string) *LoadStrikeDetailedScenarioStats {
 	validateScenarioStatsLookupName(scenarioName)
 	for index := range r.scenarioStats {
@@ -472,6 +530,7 @@ func (r LoadStrikeRunResult) FindScenarioStats(scenarioName string) *LoadStrikeD
 	return nil
 }
 
+// GetScenarioStats returns scenario stats. Use this when you need to inspect SDK state.
 func (r LoadStrikeRunResult) GetScenarioStats(scenarioName string) *LoadStrikeDetailedScenarioStats {
 	value := r.FindScenarioStats(scenarioName)
 	if value == nil {
@@ -480,26 +539,32 @@ func (r LoadStrikeRunResult) GetScenarioStats(scenarioName string) *LoadStrikeDe
 	return value
 }
 
+// ScenarioStats exposes the scenario stats operation. Use this when interacting with the SDK through this surface.
 func (r LoadStrikeRunResult) ScenarioStats() []LoadStrikeDetailedScenarioStats {
 	return append([]LoadStrikeDetailedScenarioStats(nil), r.scenarioStats...)
 }
 
+// StepStats exposes the step stats operation. Use this when interacting with the SDK through this surface.
 func (r LoadStrikeRunResult) StepStats() []LoadStrikeDetailedStepStats {
 	return append([]LoadStrikeDetailedStepStats(nil), r.stepStats...)
 }
 
+// MetricStats exposes the metric stats operation. Use this when interacting with the SDK through this surface.
 func (r LoadStrikeRunResult) MetricStats() LoadStrikeMetricStats {
 	return r.metricStats
 }
 
+// NodeInfo exposes the node info operation. Use this when interacting with the SDK through this surface.
 func (r LoadStrikeRunResult) NodeInfo() LoadStrikeNodeInfo {
 	return r.nodeInfo
 }
 
+// TestInfo exposes the test info operation. Use this when interacting with the SDK through this surface.
 func (r LoadStrikeRunResult) TestInfo() LoadStrikeTestInfo {
 	return r.testInfo
 }
 
+// MarshalJSON serializes the current value to json. Use this when bridging SDK models to JSON payloads.
 func (r LoadStrikeRunResult) MarshalJSON() ([]byte, error) {
 	body, err := json.Marshal(r.toNative())
 	if err != nil {
@@ -517,6 +582,7 @@ func (r LoadStrikeRunResult) MarshalJSON() ([]byte, error) {
 	return json.Marshal(decoded)
 }
 
+// UnmarshalJSON populates the current value from json. Use this when rehydrating SDK models from JSON payloads.
 func (r *LoadStrikeRunResult) UnmarshalJSON(data []byte) error {
 	var native runResult
 	if err := json.Unmarshal(data, &native); err != nil {

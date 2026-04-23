@@ -30,22 +30,27 @@ type ILoadStrikeRuntimePolicy = LoadStrikeRuntimePolicy
 // mirroring .NET default interface members in the closest valid Go form.
 type LoadStrikeRuntimePolicyBase struct{}
 
+// ShouldRunScenario exposes the should run scenario operation. Use this when interacting with the SDK through this surface.
 func (LoadStrikeRuntimePolicyBase) ShouldRunScenario(string) LoadStrikeBoolTask {
 	return TaskFromBool(true)
 }
 
+// BeforeScenario exposes the before scenario operation. Use this when interacting with the SDK through this surface.
 func (LoadStrikeRuntimePolicyBase) BeforeScenario(string) LoadStrikeTask {
 	return CompletedTask()
 }
 
+// AfterScenario exposes the after scenario operation. Use this when interacting with the SDK through this surface.
 func (LoadStrikeRuntimePolicyBase) AfterScenario(string, LoadStrikeScenarioRuntime) LoadStrikeTask {
 	return CompletedTask()
 }
 
+// BeforeStep exposes the before step operation. Use this when interacting with the SDK through this surface.
 func (LoadStrikeRuntimePolicyBase) BeforeStep(string, string) LoadStrikeTask {
 	return CompletedTask()
 }
 
+// AfterStep exposes the after step operation. Use this when interacting with the SDK through this surface.
 func (LoadStrikeRuntimePolicyBase) AfterStep(string, string, LoadStrikeReply) LoadStrikeTask {
 	return CompletedTask()
 }

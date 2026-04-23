@@ -174,6 +174,7 @@ func (s *runtimeTrackingConsumeSession) poll(ctx context.Context) ([]EndpointCon
 	}
 }
 
+// Close releases owned resources. Use this when the current SDK object is no longer needed.
 func (s *runtimeTrackingConsumeSession) Close() {
 	if s == nil {
 		return
@@ -398,6 +399,7 @@ func (r *runtimeCallbackRegistry) lookupTracking(id string) (runtimeTrackingRegi
 	return value, ok
 }
 
+// Close releases owned resources. Use this when the current SDK object is no longer needed.
 func (r *runtimeCallbackRegistry) Close() {
 	r.mu.RLock()
 	defer r.mu.RUnlock()

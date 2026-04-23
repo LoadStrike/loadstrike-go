@@ -76,50 +76,62 @@ func newCompatScenario(native scenarioDefinition) compatScenario {
 	}
 }
 
+// WithInit configures init. Use this when you want to set init on the current SDK object.
 func (s compatScenario) WithInit(init any) compatScenario {
 	return newCompatScenario(s.nativeValue().WithInit(init))
 }
 
+// WithClean configures clean. Use this when you want to set clean on the current SDK object.
 func (s compatScenario) WithClean(clean any) compatScenario {
 	return newCompatScenario(s.nativeValue().WithClean(clean))
 }
 
+// WithWeight configures weight. Use this when you want to set weight on the current SDK object.
 func (s compatScenario) WithWeight(weight int) compatScenario {
 	return newCompatScenario(s.nativeValue().WithWeight(weight))
 }
 
+// WithRestartIterationOnFail configures restart iteration on fail. Use this when you want to set restart iteration on fail on the current SDK object.
 func (s compatScenario) WithRestartIterationOnFail(enabled bool) compatScenario {
 	return newCompatScenario(s.nativeValue().WithRestartIterationOnFail(enabled))
 }
 
+// WithMaxFailCount configures max fail count. Use this when you want to set max fail count on the current SDK object.
 func (s compatScenario) WithMaxFailCount(maxFailCount int) compatScenario {
 	return newCompatScenario(s.nativeValue().WithMaxFailCount(maxFailCount))
 }
 
+// WithWarmUpDuration configures warm up duration. Use this when you want to set warm up duration on the current SDK object.
 func (s compatScenario) WithWarmUpDuration(seconds float64) compatScenario {
 	return newCompatScenario(s.nativeValue().WithWarmUpDuration(seconds))
 }
 
+// WithoutWarmUp configures out warm up. Use this when you want to set out warm up on the current SDK object.
 func (s compatScenario) WithoutWarmUp() compatScenario {
 	return newCompatScenario(s.nativeValue().WithoutWarmUp())
 }
 
+// WithLoadSimulations configures load simulations. Use this when you want to set load simulations on the current SDK object.
 func (s compatScenario) WithLoadSimulations(loadSimulations ...LoadSimulation) compatScenario {
 	return newCompatScenario(s.nativeValue().WithLoadSimulations(loadSimulations...))
 }
 
+// WithThresholds configures thresholds. Use this when you want to set thresholds on the current SDK object.
 func (s compatScenario) WithThresholds(thresholds ...ThresholdSpec) compatScenario {
 	return newCompatScenario(s.nativeValue().WithThresholds(thresholds...))
 }
 
+// WithTrackingConfiguration configures tracking configuration. Use this when you want to set tracking configuration on the current SDK object.
 func (s compatScenario) WithTrackingConfiguration(tracking *TrackingConfigurationSpec) compatScenario {
 	return newCompatScenario(s.nativeValue().WithTrackingConfiguration(tracking))
 }
 
+// WithCrossPlatformTracking configures cross platform tracking. Use this when you want to set cross platform tracking on the current SDK object.
 func (s compatScenario) WithCrossPlatformTracking(tracking *TrackingConfigurationSpec) compatScenario {
 	return newCompatScenario(s.nativeValue().WithCrossPlatformTracking(tracking))
 }
 
+// WithSteps configures steps. Use this when you want to set steps on the current SDK object.
 func (s compatScenario) WithSteps(steps ...compatStep) compatScenario {
 	args := make([]any, 0, len(steps))
 	for _, step := range steps {

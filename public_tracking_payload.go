@@ -37,6 +37,7 @@ func (p TrackingPayload) toNative() trackingPayload {
 	}
 }
 
+// GetBodyAsUtf8 returns body as utf8. Use this when you need to inspect SDK state.
 func (p TrackingPayload) GetBodyAsUtf8() string {
 	switch typed := p.Body.(type) {
 	case nil:

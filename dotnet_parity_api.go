@@ -37,6 +37,7 @@ func newIConfiguration(values map[string]any) IConfiguration {
 	return IConfiguration{values: values}
 }
 
+// Get exposes the get operation. Use this when interacting with the SDK through this surface.
 func (c IConfiguration) Get(key string) any {
 	if c.values == nil {
 		return nil
@@ -44,6 +45,7 @@ func (c IConfiguration) Get(key string) any {
 	return c.values[key]
 }
 
+// Lookup exposes the lookup operation. Use this when interacting with the SDK through this surface.
 func (c IConfiguration) Lookup(key string) (any, bool) {
 	if c.values == nil {
 		return nil, false
@@ -52,10 +54,12 @@ func (c IConfiguration) Lookup(key string) (any, bool) {
 	return value, ok
 }
 
+// Len exposes the len operation. Use this when interacting with the SDK through this surface.
 func (c IConfiguration) Len() int {
 	return len(c.values)
 }
 
+// Values exposes the values operation. Use this when interacting with the SDK through this surface.
 func (c IConfiguration) Values() map[string]any {
 	return cloneAnyMap(c.values)
 }
@@ -75,6 +79,7 @@ func newCancellationToken(context stdcontext.Context) CancellationToken {
 	return CancellationToken{native: context}
 }
 
+// Deadline exposes the deadline operation. Use this when interacting with the SDK through this surface.
 func (t CancellationToken) Deadline() (time.Time, bool) {
 	if t.native == nil {
 		return time.Time{}, false
@@ -82,6 +87,7 @@ func (t CancellationToken) Deadline() (time.Time, bool) {
 	return t.native.Deadline()
 }
 
+// Done exposes the done operation. Use this when interacting with the SDK through this surface.
 func (t CancellationToken) Done() <-chan struct{} {
 	if t.native == nil {
 		return nil
@@ -89,6 +95,7 @@ func (t CancellationToken) Done() <-chan struct{} {
 	return t.native.Done()
 }
 
+// Err exposes the err operation. Use this when interacting with the SDK through this surface.
 func (t CancellationToken) Err() error {
 	if t.native == nil {
 		return nil
@@ -96,6 +103,7 @@ func (t CancellationToken) Err() error {
 	return t.native.Err()
 }
 
+// Value exposes the value operation. Use this when interacting with the SDK through this surface.
 func (t CancellationToken) Value(key any) any {
 	if t.native == nil {
 		return nil
@@ -103,6 +111,7 @@ func (t CancellationToken) Value(key any) any {
 	return t.native.Value(key)
 }
 
+// Context exposes the context operation. Use this when interacting with the SDK through this surface.
 func (t CancellationToken) Context() stdcontext.Context {
 	return t.native
 }
@@ -249,6 +258,7 @@ func (r LoadStrikeReplyWith[T]) AsReply() LoadStrikeReply {
 	return r.reply
 }
 
+// Payload exposes the payload operation. Use this when interacting with the SDK through this surface.
 func (r LoadStrikeReplyWith[T]) Payload() T {
 	return r.payload
 }
@@ -261,38 +271,47 @@ func (s LoadStrikeLoadSimulation) nativeValue() LoadSimulation {
 	return s.native
 }
 
+// IsInject returns whether inject is enabled. Use this when checking SDK state before branching.
 func (s LoadStrikeLoadSimulation) IsInject() bool {
 	return s.native.Kind == "Inject"
 }
 
+// IsInjectRandom returns whether inject random is enabled. Use this when checking SDK state before branching.
 func (s LoadStrikeLoadSimulation) IsInjectRandom() bool {
 	return s.native.Kind == "InjectRandom"
 }
 
+// IsIterationsForConstant returns whether iterations for constant is enabled. Use this when checking SDK state before branching.
 func (s LoadStrikeLoadSimulation) IsIterationsForConstant() bool {
 	return s.native.Kind == "IterationsForConstant"
 }
 
+// IsIterationsForInject returns whether iterations for inject is enabled. Use this when checking SDK state before branching.
 func (s LoadStrikeLoadSimulation) IsIterationsForInject() bool {
 	return s.native.Kind == "IterationsForInject"
 }
 
+// IsKeepConstant returns whether keep constant is enabled. Use this when checking SDK state before branching.
 func (s LoadStrikeLoadSimulation) IsKeepConstant() bool {
 	return s.native.Kind == "KeepConstant"
 }
 
+// IsPause returns whether pause is enabled. Use this when checking SDK state before branching.
 func (s LoadStrikeLoadSimulation) IsPause() bool {
 	return s.native.Kind == "Pause"
 }
 
+// IsRampingConstant returns whether ramping constant is enabled. Use this when checking SDK state before branching.
 func (s LoadStrikeLoadSimulation) IsRampingConstant() bool {
 	return s.native.Kind == "RampingConstant"
 }
 
+// IsRampingInject returns whether ramping inject is enabled. Use this when checking SDK state before branching.
 func (s LoadStrikeLoadSimulation) IsRampingInject() bool {
 	return s.native.Kind == "RampingInject"
 }
 
+// String returns a string representation. Use this for logs, debugging, or display.
 func (s LoadStrikeLoadSimulation) String() string {
 	return s.native.Kind
 }
@@ -378,6 +397,7 @@ func newLoadStrikeScenario(native scenarioDefinition) LoadStrikeScenario {
 	}
 }
 
+// Name exposes the name operation. Use this when interacting with the SDK through this surface.
 func (s loadStrikeScenario) Name() string {
 	if s.native == nil {
 		return ""
@@ -407,42 +427,52 @@ func (s loadStrikeScenario) nativeValue() scenarioDefinition {
 	return *s.native
 }
 
+// WithInit configures init. Use this when you want to set init on the current SDK object.
 func (s loadStrikeScenario) WithInit(init LoadStrikeScenarioInitFunc) LoadStrikeScenario {
 	return newLoadStrikeScenario(s.nativeValue().WithInit(init))
 }
 
+// WithInitAsync configures init async. Use this when you want to set init async on the current SDK object.
 func (s loadStrikeScenario) WithInitAsync(init LoadStrikeAsyncScenarioInitFunc) LoadStrikeScenario {
 	return newLoadStrikeScenario(s.nativeValue().WithInit(init))
 }
 
+// WithClean configures clean. Use this when you want to set clean on the current SDK object.
 func (s loadStrikeScenario) WithClean(clean LoadStrikeScenarioInitFunc) LoadStrikeScenario {
 	return newLoadStrikeScenario(s.nativeValue().WithClean(clean))
 }
 
+// WithCleanAsync configures clean async. Use this when you want to set clean async on the current SDK object.
 func (s loadStrikeScenario) WithCleanAsync(clean LoadStrikeAsyncScenarioInitFunc) LoadStrikeScenario {
 	return newLoadStrikeScenario(s.nativeValue().WithClean(clean))
 }
 
+// WithWeight configures weight. Use this when you want to set weight on the current SDK object.
 func (s loadStrikeScenario) WithWeight(weight int) LoadStrikeScenario {
 	return newLoadStrikeScenario(s.nativeValue().WithWeight(weight))
 }
 
+// WithRestartIterationOnFail configures restart iteration on fail. Use this when you want to set restart iteration on fail on the current SDK object.
 func (s loadStrikeScenario) WithRestartIterationOnFail(enabled bool) LoadStrikeScenario {
 	return newLoadStrikeScenario(s.nativeValue().WithRestartIterationOnFail(enabled))
 }
 
+// WithMaxFailCount configures max fail count. Use this when you want to set max fail count on the current SDK object.
 func (s loadStrikeScenario) WithMaxFailCount(maxFailCount int) LoadStrikeScenario {
 	return newLoadStrikeScenario(s.nativeValue().WithMaxFailCount(maxFailCount))
 }
 
+// WithWarmUpDuration configures warm up duration. Use this when you want to set warm up duration on the current SDK object.
 func (s loadStrikeScenario) WithWarmUpDuration(seconds float64) LoadStrikeScenario {
 	return newLoadStrikeScenario(s.nativeValue().WithWarmUpDuration(seconds))
 }
 
+// WithoutWarmUp configures out warm up. Use this when you want to set out warm up on the current SDK object.
 func (s loadStrikeScenario) WithoutWarmUp() LoadStrikeScenario {
 	return newLoadStrikeScenario(s.nativeValue().WithoutWarmUp())
 }
 
+// WithLoadSimulations configures load simulations. Use this when you want to set load simulations on the current SDK object.
 func (s loadStrikeScenario) WithLoadSimulations(loadSimulations ...LoadStrikeLoadSimulation) LoadStrikeScenario {
 	native := make([]LoadSimulation, 0, len(loadSimulations))
 	for _, simulation := range loadSimulations {
@@ -451,6 +481,7 @@ func (s loadStrikeScenario) WithLoadSimulations(loadSimulations ...LoadStrikeLoa
 	return newLoadStrikeScenario(s.nativeValue().WithLoadSimulations(native...))
 }
 
+// WithThresholds configures thresholds. Use this when you want to set thresholds on the current SDK object.
 func (s loadStrikeScenario) WithThresholds(thresholds ...LoadStrikeThreshold) LoadStrikeScenario {
 	native := make([]ThresholdSpec, 0, len(thresholds))
 	for _, threshold := range thresholds {
@@ -459,10 +490,12 @@ func (s loadStrikeScenario) WithThresholds(thresholds ...LoadStrikeThreshold) Lo
 	return newLoadStrikeScenario(s.nativeValue().WithThresholds(native...))
 }
 
+// WithTrackingConfiguration configures tracking configuration. Use this when you want to set tracking configuration on the current SDK object.
 func (s loadStrikeScenario) WithTrackingConfiguration(tracking *TrackingConfigurationSpec) LoadStrikeScenario {
 	return newLoadStrikeScenario(s.nativeValue().WithTrackingConfiguration(tracking))
 }
 
+// WithCrossPlatformTracking configures cross platform tracking. Use this when you want to set cross platform tracking on the current SDK object.
 func (s loadStrikeScenario) WithCrossPlatformTracking(tracking *TrackingConfigurationSpec) LoadStrikeScenario {
 	return newLoadStrikeScenario(s.nativeValue().WithCrossPlatformTracking(tracking))
 }
@@ -485,22 +518,27 @@ func (r LoadStrikeReply) toNative() replyResult {
 	return normalizeReplyValue(*r.native)
 }
 
+// IsError returns whether error is enabled. Use this when checking SDK state before branching.
 func (r LoadStrikeReply) IsError() bool {
 	return r.toNative().IsError
 }
 
+// StatusCode exposes the status code operation. Use this when interacting with the SDK through this surface.
 func (r LoadStrikeReply) StatusCode() string {
 	return r.toNative().StatusCode
 }
 
+// Message exposes the message operation. Use this when interacting with the SDK through this surface.
 func (r LoadStrikeReply) Message() string {
 	return r.toNative().Message
 }
 
+// SizeBytes exposes the size bytes operation. Use this when interacting with the SDK through this surface.
 func (r LoadStrikeReply) SizeBytes() int64 {
 	return r.toNative().SizeBytes
 }
 
+// CustomLatencyMS exposes the custom latency ms operation. Use this when interacting with the SDK through this surface.
 func (r LoadStrikeReply) CustomLatencyMS() float64 {
 	return r.toNative().CustomLatencyMS
 }
@@ -510,26 +548,32 @@ func (r LoadStrikeReply) AsReply() LoadStrikeReply {
 	return newLoadStrikeReply(r.toNative())
 }
 
+// CreateScenario creates scenario. Use this when defining a new SDK object or rule.
 func (LoadStrikeThreshold) CreateScenario(args ...any) LoadStrikeThreshold {
 	return newLoadStrikeThreshold(ScenarioThreshold(args...))
 }
 
+// CreateStep creates step. Use this when defining a new SDK object or rule.
 func (LoadStrikeThreshold) CreateStep(stepName string, args ...any) LoadStrikeThreshold {
 	return newLoadStrikeThreshold(StepThreshold(stepName, args...))
 }
 
+// CreateMetric creates metric. Use this when defining a new SDK object or rule.
 func (LoadStrikeThreshold) CreateMetric(args ...any) LoadStrikeThreshold {
 	return newLoadStrikeThreshold(MetricThreshold(args...))
 }
 
+// ScenarioPredicate exposes the scenario predicate operation. Use this when interacting with the SDK through this surface.
 func (LoadStrikeThreshold) ScenarioPredicate(args ...any) LoadStrikeThreshold {
 	return newLoadStrikeThreshold(ScenarioThreshold(args...))
 }
 
+// StepPredicate exposes the step predicate operation. Use this when interacting with the SDK through this surface.
 func (LoadStrikeThreshold) StepPredicate(stepName string, args ...any) LoadStrikeThreshold {
 	return newLoadStrikeThreshold(StepThreshold(stepName, args...))
 }
 
+// MetricPredicate exposes the metric predicate operation. Use this when interacting with the SDK through this surface.
 func (LoadStrikeThreshold) MetricPredicate(args ...any) LoadStrikeThreshold {
 	return newLoadStrikeThreshold(MetricThreshold(args...))
 }
@@ -550,6 +594,7 @@ func newLoadStrikeScenarioContext(context *stepRuntimeContext) LoadStrikeScenari
 	}
 }
 
+// Data exposes the data operation. Use this when interacting with the SDK through this surface.
 func (c loadStrikeScenarioContext) Data() map[string]any {
 	if c.native == nil {
 		return nil
@@ -557,6 +602,7 @@ func (c loadStrikeScenarioContext) Data() map[string]any {
 	return c.native.Data
 }
 
+// InvocationNumber exposes the invocation number operation. Use this when interacting with the SDK through this surface.
 func (c loadStrikeScenarioContext) InvocationNumber() int64 {
 	if c.native == nil {
 		return 0
@@ -564,6 +610,7 @@ func (c loadStrikeScenarioContext) InvocationNumber() int64 {
 	return c.native.InvocationNumber
 }
 
+// Logger exposes the logger operation. Use this when interacting with the SDK through this surface.
 func (c loadStrikeScenarioContext) Logger() ILogger {
 	if c.native == nil {
 		return nil
@@ -571,6 +618,7 @@ func (c loadStrikeScenarioContext) Logger() ILogger {
 	return c.native.Logger
 }
 
+// NodeInfo exposes the node info operation. Use this when interacting with the SDK through this surface.
 func (c loadStrikeScenarioContext) NodeInfo() LoadStrikeNodeInfo {
 	if c.native == nil {
 		return LoadStrikeNodeInfo{}
@@ -578,6 +626,7 @@ func (c loadStrikeScenarioContext) NodeInfo() LoadStrikeNodeInfo {
 	return newLoadStrikeNodeInfo(c.native.nodeInfo)
 }
 
+// Random exposes the random operation. Use this when interacting with the SDK through this surface.
 func (c loadStrikeScenarioContext) Random() *LoadStrikeRandom {
 	if c.native == nil {
 		return nil
@@ -585,6 +634,7 @@ func (c loadStrikeScenarioContext) Random() *LoadStrikeRandom {
 	return c.native.Random
 }
 
+// ScenarioCancellationToken exposes the scenario cancellation token operation. Use this when interacting with the SDK through this surface.
 func (c loadStrikeScenarioContext) ScenarioCancellationToken() CancellationToken {
 	if c.native == nil {
 		return CancellationToken{}
@@ -592,6 +642,7 @@ func (c loadStrikeScenarioContext) ScenarioCancellationToken() CancellationToken
 	return newCancellationToken(c.native.ScenarioCancellationToken)
 }
 
+// ScenarioInfo exposes the scenario info operation. Use this when interacting with the SDK through this surface.
 func (c loadStrikeScenarioContext) ScenarioInfo() LoadStrikeScenarioInfo {
 	if c.native == nil {
 		return LoadStrikeScenarioInfo{}
@@ -599,6 +650,7 @@ func (c loadStrikeScenarioContext) ScenarioInfo() LoadStrikeScenarioInfo {
 	return c.native.ScenarioInfo
 }
 
+// ScenarioInstanceData exposes the scenario instance data operation. Use this when interacting with the SDK through this surface.
 func (c loadStrikeScenarioContext) ScenarioInstanceData() map[string]any {
 	if c.native == nil {
 		return nil
@@ -606,6 +658,7 @@ func (c loadStrikeScenarioContext) ScenarioInstanceData() map[string]any {
 	return c.native.ScenarioInstanceData
 }
 
+// TestInfo exposes the test info operation. Use this when interacting with the SDK through this surface.
 func (c loadStrikeScenarioContext) TestInfo() LoadStrikeTestInfo {
 	if c.native == nil {
 		return LoadStrikeTestInfo{}
@@ -654,6 +707,7 @@ func newLoadStrikeScenarioInitContext(context *scenarioHookContext) LoadStrikeSc
 	}
 }
 
+// CustomSettings exposes the custom settings operation. Use this when interacting with the SDK through this surface.
 func (c loadStrikeScenarioInitContext) CustomSettings() IConfiguration {
 	if c.native == nil {
 		return IConfiguration{}
@@ -661,6 +715,7 @@ func (c loadStrikeScenarioInitContext) CustomSettings() IConfiguration {
 	return c.native.CustomSettings
 }
 
+// GlobalCustomSettings exposes the global custom settings operation. Use this when interacting with the SDK through this surface.
 func (c loadStrikeScenarioInitContext) GlobalCustomSettings() IConfiguration {
 	if c.native == nil {
 		return IConfiguration{}
@@ -668,6 +723,7 @@ func (c loadStrikeScenarioInitContext) GlobalCustomSettings() IConfiguration {
 	return c.native.GlobalCustomSettings
 }
 
+// Logger exposes the logger operation. Use this when interacting with the SDK through this surface.
 func (c loadStrikeScenarioInitContext) Logger() ILogger {
 	if c.native == nil {
 		return nil
@@ -675,6 +731,7 @@ func (c loadStrikeScenarioInitContext) Logger() ILogger {
 	return c.native.Logger
 }
 
+// NodeInfo exposes the node info operation. Use this when interacting with the SDK through this surface.
 func (c loadStrikeScenarioInitContext) NodeInfo() LoadStrikeNodeInfo {
 	if c.native == nil {
 		return LoadStrikeNodeInfo{}
@@ -682,6 +739,7 @@ func (c loadStrikeScenarioInitContext) NodeInfo() LoadStrikeNodeInfo {
 	return newLoadStrikeNodeInfo(c.native.nodeInfo)
 }
 
+// ScenarioInfo exposes the scenario info operation. Use this when interacting with the SDK through this surface.
 func (c loadStrikeScenarioInitContext) ScenarioInfo() LoadStrikeScenarioInfo {
 	if c.native == nil {
 		return LoadStrikeScenarioInfo{}
@@ -689,6 +747,7 @@ func (c loadStrikeScenarioInitContext) ScenarioInfo() LoadStrikeScenarioInfo {
 	return c.native.ScenarioInfo
 }
 
+// ScenarioPartition exposes the scenario partition operation. Use this when interacting with the SDK through this surface.
 func (c loadStrikeScenarioInitContext) ScenarioPartition() LoadStrikeScenarioPartition {
 	if c.native == nil {
 		return LoadStrikeScenarioPartition{}
@@ -696,6 +755,7 @@ func (c loadStrikeScenarioInitContext) ScenarioPartition() LoadStrikeScenarioPar
 	return newLoadStrikeScenarioPartition(c.native.scenarioPartitionInfo)
 }
 
+// TestInfo exposes the test info operation. Use this when interacting with the SDK through this surface.
 func (c loadStrikeScenarioInitContext) TestInfo() LoadStrikeTestInfo {
 	if c.native == nil {
 		return LoadStrikeTestInfo{}
@@ -743,34 +803,42 @@ type loadStrikeSimulationNamespace struct{}
 // LoadStrikeSimulation mirrors the .NET public load-simulation helper namespace.
 var LoadStrikeSimulation loadStrikeSimulationNamespace
 
+// Inject exposes the inject operation. Use this when interacting with the SDK through this surface.
 func (loadStrikeSimulationNamespace) Inject(rate int, interval TimeSpan, during TimeSpan) LoadStrikeLoadSimulation {
 	return newLoadStrikeLoadSimulation(Inject(rate, interval.Seconds(), during.Seconds()))
 }
 
+// InjectRandom exposes the inject random operation. Use this when interacting with the SDK through this surface.
 func (loadStrikeSimulationNamespace) InjectRandom(minRate int, maxRate int, interval TimeSpan, during TimeSpan) LoadStrikeLoadSimulation {
 	return newLoadStrikeLoadSimulation(InjectRandom(minRate, maxRate, interval.Seconds(), during.Seconds()))
 }
 
+// IterationsForConstant exposes the iterations for constant operation. Use this when interacting with the SDK through this surface.
 func (loadStrikeSimulationNamespace) IterationsForConstant(copies int, iterations int) LoadStrikeLoadSimulation {
 	return newLoadStrikeLoadSimulation(IterationsForConstant(copies, iterations))
 }
 
+// IterationsForInject exposes the iterations for inject operation. Use this when interacting with the SDK through this surface.
 func (loadStrikeSimulationNamespace) IterationsForInject(rate int, interval TimeSpan, iterations int) LoadStrikeLoadSimulation {
 	return newLoadStrikeLoadSimulation(IterationsForInject(rate, interval.Seconds(), iterations))
 }
 
+// KeepConstant exposes the keep constant operation. Use this when interacting with the SDK through this surface.
 func (loadStrikeSimulationNamespace) KeepConstant(copies int, during TimeSpan) LoadStrikeLoadSimulation {
 	return newLoadStrikeLoadSimulation(KeepConstant(copies, during.Seconds()))
 }
 
+// Pause exposes the pause operation. Use this when interacting with the SDK through this surface.
 func (loadStrikeSimulationNamespace) Pause(during TimeSpan) LoadStrikeLoadSimulation {
 	return newLoadStrikeLoadSimulation(Pause(during.Seconds()))
 }
 
+// RampingConstant exposes the ramping constant operation. Use this when interacting with the SDK through this surface.
 func (loadStrikeSimulationNamespace) RampingConstant(copies int, during TimeSpan) LoadStrikeLoadSimulation {
 	return newLoadStrikeLoadSimulation(RampingConstant(copies, during.Seconds()))
 }
 
+// RampingInject exposes the ramping inject operation. Use this when interacting with the SDK through this surface.
 func (loadStrikeSimulationNamespace) RampingInject(rate int, interval TimeSpan, during TimeSpan) LoadStrikeLoadSimulation {
 	return newLoadStrikeLoadSimulation(RampingInject(rate, interval.Seconds(), during.Seconds()))
 }
@@ -780,19 +848,23 @@ type loadStrikeResponseNamespace struct{}
 // LoadStrikeResponse mirrors the .NET public response helper namespace.
 var LoadStrikeResponse loadStrikeResponseNamespace
 
+// Ok exposes the ok operation. Use this when interacting with the SDK through this surface.
 func (loadStrikeResponseNamespace) Ok(args ...any) LoadStrikeReply {
 	return newLoadStrikeReply(dotnetStyleReply(true, args...))
 }
 
+// Fail exposes the fail operation. Use this when interacting with the SDK through this surface.
 func (loadStrikeResponseNamespace) Fail(args ...any) LoadStrikeReply {
 	return newLoadStrikeReply(dotnetStyleReply(false, args...))
 }
 
+// OkWith exposes the ok with operation. Use this when interacting with the SDK through this surface.
 func (loadStrikeResponseNamespace) OkWith(payload any, args ...any) LoadStrikeReplyWith[any] {
 	reply := dotnetStyleReply(true, append([]any{payload}, args...)...)
 	return normalizeLoadStrikeReplyWith(reply, payload)
 }
 
+// FailWith exposes the fail with operation. Use this when interacting with the SDK through this surface.
 func (loadStrikeResponseNamespace) FailWith(payload any, args ...any) LoadStrikeReplyWith[any] {
 	reply := dotnetStyleReply(false, append([]any{payload}, args...)...)
 	return normalizeLoadStrikeReplyWith(reply, payload)
@@ -803,6 +875,7 @@ type loadStrikeStepNamespace struct{}
 // LoadStrikeStep mirrors the .NET public step helper namespace.
 var LoadStrikeStep loadStrikeStepNamespace
 
+// Run runs the configured loadstrike operation. Use this when you are ready to execute through the SDK.
 func (loadStrikeStepNamespace) Run(name string, context LoadStrikeScenarioContext, run LoadStrikeStepRunFunc) LoadStrikeReply {
 	if strings.TrimSpace(name) == "" {
 		panic("step name must be provided.")
@@ -817,6 +890,7 @@ func (loadStrikeStepNamespace) Run(name string, context LoadStrikeScenarioContex
 	return run(scenarioContext)
 }
 
+// RunAsync runs the configured loadstrike operation asynchronously. Use this when execution should not block the current call path.
 func (loadStrikeStepNamespace) RunAsync(name string, context LoadStrikeScenarioContext, run LoadStrikeAsyncStepRunFunc) LoadStrikeReply {
 	if strings.TrimSpace(name) == "" {
 		panic("step name must be provided.")

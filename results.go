@@ -47,6 +47,7 @@ type runResult struct {
 	reportTrace           *reportTrace
 }
 
+// MarshalJSON serializes the current value to json. Use this when bridging SDK models to JSON payloads.
 func (r runResult) MarshalJSON() ([]byte, error) {
 	normalized := r
 	normalizeRunResult(&normalized)
@@ -110,6 +111,7 @@ func (r runResult) MarshalJSON() ([]byte, error) {
 	})
 }
 
+// UnmarshalJSON populates the current value from json. Use this when rehydrating SDK models from JSON payloads.
 func (r *runResult) UnmarshalJSON(data []byte) error {
 	type payload struct {
 		StartedUTC            time.Time            `json:"StartedUtc"`
@@ -225,6 +227,7 @@ type scenarioStats struct {
 	lookupFlavor         statsLookupFlavor       `json:"-"`
 }
 
+// MarshalJSON serializes the current value to json. Use this when bridging SDK models to JSON payloads.
 func (s scenarioStats) MarshalJSON() ([]byte, error) {
 	normalized := s
 	normalizeScenarioStats(&normalized)
@@ -274,6 +277,7 @@ func (s scenarioStats) MarshalJSON() ([]byte, error) {
 	})
 }
 
+// UnmarshalJSON populates the current value from json. Use this when rehydrating SDK models from JSON payloads.
 func (s *scenarioStats) UnmarshalJSON(data []byte) error {
 	type payload struct {
 		ScenarioName         string                  `json:"ScenarioName"`
@@ -529,6 +533,7 @@ type nodeStats struct {
 	Thresholds      []thresholdResult `json:"Thresholds,omitempty"`
 }
 
+// MarshalJSON serializes the current value to json. Use this when bridging SDK models to JSON payloads.
 func (n nodeStats) MarshalJSON() ([]byte, error) {
 	normalized := n
 	normalizeNodeStats(&normalized)
@@ -536,6 +541,7 @@ func (n nodeStats) MarshalJSON() ([]byte, error) {
 	return json.Marshal(payload(normalized))
 }
 
+// UnmarshalJSON populates the current value from json. Use this when rehydrating SDK models from JSON payloads.
 func (n *nodeStats) UnmarshalJSON(data []byte) error {
 	type payload struct {
 		AllBytes        int64             `json:"AllBytes,omitempty"`

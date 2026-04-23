@@ -88,30 +88,37 @@ type LoadStrikeReportingSink interface {
 // LoadStrikeReportingSinkBase provides default no-op lifecycle behavior.
 type LoadStrikeReportingSinkBase struct{}
 
+// Init initializes the current sdk object. Use this when preparing runtime state before execution.
 func (LoadStrikeReportingSinkBase) Init(LoadStrikeBaseContext, IConfiguration) LoadStrikeTask {
 	return CompletedTask()
 }
 
+// Start starts the current sdk activity. Use this when beginning execution or sink processing.
 func (LoadStrikeReportingSinkBase) Start(LoadStrikeSessionStartInfo) LoadStrikeTask {
 	return CompletedTask()
 }
 
+// SaveRealtimeStats exposes the save realtime stats operation. Use this when interacting with the SDK through this surface.
 func (LoadStrikeReportingSinkBase) SaveRealtimeStats([]LoadStrikeScenarioStats) LoadStrikeTask {
 	return CompletedTask()
 }
 
+// SaveRealtimeMetrics exposes the save realtime metrics operation. Use this when interacting with the SDK through this surface.
 func (LoadStrikeReportingSinkBase) SaveRealtimeMetrics(LoadStrikeMetricStats) LoadStrikeTask {
 	return CompletedTask()
 }
 
+// SaveRunResult exposes the save run result operation. Use this when interacting with the SDK through this surface.
 func (LoadStrikeReportingSinkBase) SaveRunResult(LoadStrikeRunResult) LoadStrikeTask {
 	return CompletedTask()
 }
 
+// Stop stops the current sdk activity. Use this when finishing execution or shutting down a helper.
 func (LoadStrikeReportingSinkBase) Stop() LoadStrikeTask {
 	return CompletedTask()
 }
 
+// Dispose releases owned resources. Use this when the current SDK object is no longer needed.
 func (LoadStrikeReportingSinkBase) Dispose() {}
 
 type loadStrikeReportingSinkBase = LoadStrikeReportingSinkBase
@@ -147,6 +154,7 @@ type reportingSinkSpec struct {
 	OTELCollector *OTELCollectorSinkOptions `json:"OtelCollector,omitempty"`
 }
 
+// SinkName exposes the sink name operation. Use this when interacting with the SDK through this surface.
 func (s reportingSinkSpec) SinkName() string {
 	return strings.TrimSpace(strings.ToLower(s.Kind))
 }
@@ -237,6 +245,7 @@ type InfluxDbReportingSink struct {
 	Options InfluxDbReportingSinkOptions
 }
 
+// SinkName exposes the sink name operation. Use this when interacting with the SDK through this surface.
 func (InfluxDbReportingSink) SinkName() string { return "influxdb" }
 
 type TimescaleDbReportingSink struct {
@@ -244,6 +253,7 @@ type TimescaleDbReportingSink struct {
 	Options TimescaleDbReportingSinkOptions
 }
 
+// SinkName exposes the sink name operation. Use this when interacting with the SDK through this surface.
 func (TimescaleDbReportingSink) SinkName() string { return "timescaledb" }
 
 type GrafanaLokiReportingSink struct {
@@ -251,6 +261,7 @@ type GrafanaLokiReportingSink struct {
 	Options GrafanaLokiSinkOptions
 }
 
+// SinkName exposes the sink name operation. Use this when interacting with the SDK through this surface.
 func (GrafanaLokiReportingSink) SinkName() string { return "grafanaloki" }
 
 type DatadogReportingSink struct {
@@ -258,6 +269,7 @@ type DatadogReportingSink struct {
 	Options DatadogSinkOptions
 }
 
+// SinkName exposes the sink name operation. Use this when interacting with the SDK through this surface.
 func (DatadogReportingSink) SinkName() string { return "datadog" }
 
 type SplunkReportingSink struct {
@@ -265,6 +277,7 @@ type SplunkReportingSink struct {
 	Options SplunkSinkOptions
 }
 
+// SinkName exposes the sink name operation. Use this when interacting with the SDK through this surface.
 func (SplunkReportingSink) SinkName() string { return "splunk" }
 
 type OtelCollectorReportingSink struct {
@@ -272,6 +285,7 @@ type OtelCollectorReportingSink struct {
 	Options OtelCollectorReportingSinkOptions
 }
 
+// SinkName exposes the sink name operation. Use this when interacting with the SDK through this surface.
 func (OtelCollectorReportingSink) SinkName() string { return "otelcollector" }
 
 type endpointProduceResult struct {

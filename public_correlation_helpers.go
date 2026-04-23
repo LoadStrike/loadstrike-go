@@ -22,10 +22,14 @@ type RedisCorrelationStoreOptions struct {
 	EntryTTLSeconds  float64 `json:"EntryTtlSeconds,omitempty"`
 }
 
+// Creates an in-memory correlation store configuration.
+// Use this when tracking state can stay local to the process.
 func (CorrelationStoreConfiguration) InMemory() CorrelationStoreConfiguration {
 	return CorrelationStoreConfiguration{Kind: "InMemory"}
 }
 
+// Creates a Redis-backed correlation store configuration.
+// Use this when tracking state must survive across processes or cluster nodes.
 func (CorrelationStoreConfiguration) RedisStore(options RedisCorrelationStoreOptions) CorrelationStoreConfiguration {
 	value := options
 	return CorrelationStoreConfiguration{
@@ -40,6 +44,8 @@ type TrackingFieldSelector struct {
 	Path     string `json:"Path,omitempty"`
 }
 
+// Parses a selector or configuration expression.
+// Use this when a tracking selector should be created from its text form.
 func (TrackingFieldSelector) Parse(value string) TrackingFieldSelector {
 	selector, err := parseTrackingFieldSelector(value)
 	if err != nil {
@@ -48,6 +54,8 @@ func (TrackingFieldSelector) Parse(value string) TrackingFieldSelector {
 	return newTrackingFieldSelector(selector)
 }
 
+// Attempts to parse a selector or configuration expression.
+// Use this when invalid input should be handled without throwing.
 func (TrackingFieldSelector) TryParse(value string) (bool, TrackingFieldSelector) {
 	selector, err := parseTrackingFieldSelector(value)
 	if err != nil {
@@ -56,6 +64,8 @@ func (TrackingFieldSelector) TryParse(value string) (bool, TrackingFieldSelector
 	return true, newTrackingFieldSelector(selector)
 }
 
+// Extracts a value from the provided payload.
+// Use this when a tracking selector should read data from a transport payload.
 func (s TrackingFieldSelector) Extract(payload TrackingPayload) string {
 	switch normalizeTrackingFieldSelectorLocation(s.Location) {
 	case "header":
@@ -80,6 +90,8 @@ type TrackingPayloadBuilder struct {
 	body               []byte
 }
 
+// Sets the payload body on the builder.
+// Use this when a tracking payload should be created from raw content.
 func (b *TrackingPayloadBuilder) SetBody(body any) {
 	if b == nil {
 		return
@@ -101,6 +113,8 @@ func (b *TrackingPayloadBuilder) SetBody(body any) {
 	}
 }
 
+// Builds the configured payload or helper object.
+// Use this when all builder inputs are ready to be materialized.
 func (b TrackingPayloadBuilder) Build() TrackingPayload {
 	headers := cloneStringMap(b.Headers)
 	if headers == nil {

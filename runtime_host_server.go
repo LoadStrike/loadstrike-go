@@ -16,6 +16,7 @@ func newRuntimeHostServer(registry *runtimeCallbackRegistry) *runtimeHostServer 
 	return &runtimeHostServer{registry: registry}
 }
 
+// Handshake exposes the handshake operation. Use this when interacting with the SDK through this surface.
 func (s *runtimeHostServer) Handshake(_ context.Context, request *runtimeproto.HandshakeRequest) (*runtimeproto.HandshakeResponse, error) {
 	if request.GetSdkVersion() != RuntimeArtifactVersion() {
 		return nil, RuntimeMismatchError{
@@ -32,6 +33,7 @@ func (s *runtimeHostServer) Handshake(_ context.Context, request *runtimeproto.H
 	}, nil
 }
 
+// InvokeStep exposes the invoke step operation. Use this when interacting with the SDK through this surface.
 func (s *runtimeHostServer) InvokeStep(_ context.Context, request *runtimeproto.InvokeStepRequest) (*runtimeproto.InvokeStepResponse, error) {
 	callback, ok := s.registry.lookup(request.GetCallbackId())
 	if !ok {
