@@ -110,6 +110,75 @@ func (r runResult) MarshalJSON() ([]byte, error) {
 	})
 }
 
+func (r *runResult) UnmarshalJSON(data []byte) error {
+	type payload struct {
+		StartedUTC            time.Time            `json:"StartedUtc"`
+		CompletedUTC          time.Time            `json:"CompletedUtc"`
+		DurationMS            float64              `json:"DurationMs,omitempty"`
+		Duration              time.Duration        `json:"Duration,omitempty"`
+		AllBytes              int64                `json:"AllBytes,omitempty"`
+		AllRequestCount       int                  `json:"AllRequestCount"`
+		AllOKCount            int                  `json:"AllOkCount"`
+		AllFailCount          int                  `json:"AllFailCount"`
+		FailedThresholds      int                  `json:"FailedThresholds,omitempty"`
+		NodeType              NodeType             `json:"NodeType,omitempty"`
+		NodeInfo              nodeInfo             `json:"nodeInfo,omitempty"`
+		TestInfo              testInfo             `json:"testInfo"`
+		Thresholds            []thresholdResult    `json:"Thresholds,omitempty"`
+		ThresholdResults      []thresholdResult    `json:"ThresholdResults,omitempty"`
+		MetricStats           metricStats          `json:"metricStats,omitempty"`
+		Metrics               []metricResult       `json:"Metrics,omitempty"`
+		ScenarioStats         []scenarioStats      `json:"scenarioStats"`
+		StepStats             []stepStats          `json:"stepStats,omitempty"`
+		ScenarioDurationsMS   map[string]float64   `json:"ScenarioDurationsMs,omitempty"`
+		PluginsData           []pluginData         `json:"PluginsData,omitempty"`
+		DisabledSinks         []string             `json:"DisabledSinks,omitempty"`
+		SinkErrors            []sinkErrorResult    `json:"SinkErrors,omitempty"`
+		ReportFiles           []string             `json:"ReportFiles,omitempty"`
+		LogFiles              []string             `json:"LogFiles,omitempty"`
+		PolicyErrors          []RuntimePolicyError `json:"PolicyErrors,omitempty"`
+		CorrelationRows       []correlationRow     `json:"CorrelationRows,omitempty"`
+		FailedCorrelationRows []correlationRow     `json:"FailedCorrelationRows,omitempty"`
+	}
+
+	var decoded payload
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return err
+	}
+
+	*r = runResult{
+		StartedUTC:            decoded.StartedUTC,
+		CompletedUTC:          decoded.CompletedUTC,
+		DurationMS:            decoded.DurationMS,
+		Duration:              decoded.Duration,
+		AllBytes:              decoded.AllBytes,
+		AllRequestCount:       decoded.AllRequestCount,
+		AllOKCount:            decoded.AllOKCount,
+		AllFailCount:          decoded.AllFailCount,
+		FailedThresholds:      decoded.FailedThresholds,
+		NodeType:              decoded.NodeType,
+		nodeInfo:              decoded.NodeInfo,
+		testInfo:              decoded.TestInfo,
+		Thresholds:            append([]thresholdResult(nil), decoded.Thresholds...),
+		ThresholdResults:      append([]thresholdResult(nil), decoded.ThresholdResults...),
+		metricStats:           decoded.MetricStats,
+		Metrics:               append([]metricResult(nil), decoded.Metrics...),
+		scenarioStats:         append([]scenarioStats(nil), decoded.ScenarioStats...),
+		stepStats:             append([]stepStats(nil), decoded.StepStats...),
+		ScenarioDurationsMS:   cloneFloatMap(decoded.ScenarioDurationsMS),
+		PluginsData:           append([]pluginData(nil), decoded.PluginsData...),
+		DisabledSinks:         append([]string(nil), decoded.DisabledSinks...),
+		SinkErrors:            append([]sinkErrorResult(nil), decoded.SinkErrors...),
+		ReportFiles:           append([]string(nil), decoded.ReportFiles...),
+		LogFiles:              append([]string(nil), decoded.LogFiles...),
+		PolicyErrors:          append([]RuntimePolicyError(nil), decoded.PolicyErrors...),
+		CorrelationRows:       append([]correlationRow(nil), decoded.CorrelationRows...),
+		FailedCorrelationRows: append([]correlationRow(nil), decoded.FailedCorrelationRows...),
+	}
+	normalizeRunResult(r)
+	return nil
+}
+
 // FindScenarioStats returns the named scenario stats when present.
 func (r runResult) FindScenarioStats(scenarioName string) *scenarioStats {
 	validateScenarioStatsLookupName(scenarioName)
@@ -203,6 +272,61 @@ func (s scenarioStats) MarshalJSON() ([]byte, error) {
 		SortIndex:            normalized.SortIndex,
 		StepStats:            append([]stepStats(nil), normalized.stepStats...),
 	})
+}
+
+func (s *scenarioStats) UnmarshalJSON(data []byte) error {
+	type payload struct {
+		ScenarioName         string                  `json:"ScenarioName"`
+		AllBytes             int64                   `json:"AllBytes,omitempty"`
+		AllRequestCount      int                     `json:"AllRequestCount"`
+		AllOKCount           int                     `json:"AllOkCount"`
+		AllFailCount         int                     `json:"AllFailCount"`
+		TotalBytes           int64                   `json:"TotalBytes,omitempty"`
+		TotalLatencyMS       float64                 `json:"TotalLatencyMs,omitempty"`
+		AvgLatencyMS         float64                 `json:"AvgLatencyMs,omitempty"`
+		MinLatencyMS         float64                 `json:"MinLatencyMs,omitempty"`
+		MaxLatencyMS         float64                 `json:"MaxLatencyMs,omitempty"`
+		StatusCodes          map[string]int          `json:"StatusCodes,omitempty"`
+		CurrentOperation     string                  `json:"CurrentOperation,omitempty"`
+		CurrentOperationType LoadStrikeOperationType `json:"CurrentOperationType,omitempty"`
+		DurationMS           float64                 `json:"DurationMs,omitempty"`
+		Duration             time.Duration           `json:"Duration,omitempty"`
+		Ok                   measurementStats        `json:"Ok,omitempty"`
+		Fail                 measurementStats        `json:"Fail,omitempty"`
+		LoadSimulationStats  loadSimulationStats     `json:"LoadSimulationStats,omitempty"`
+		SortIndex            int                     `json:"SortIndex,omitempty"`
+		StepStats            []stepStats             `json:"stepStats,omitempty"`
+	}
+
+	var decoded payload
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return err
+	}
+
+	*s = scenarioStats{
+		ScenarioName:         decoded.ScenarioName,
+		AllBytes:             decoded.AllBytes,
+		AllRequestCount:      decoded.AllRequestCount,
+		AllOKCount:           decoded.AllOKCount,
+		AllFailCount:         decoded.AllFailCount,
+		TotalBytes:           decoded.TotalBytes,
+		TotalLatencyMS:       decoded.TotalLatencyMS,
+		AvgLatencyMS:         decoded.AvgLatencyMS,
+		MinLatencyMS:         decoded.MinLatencyMS,
+		MaxLatencyMS:         decoded.MaxLatencyMS,
+		StatusCodes:          cloneStatusCodeCounts(decoded.StatusCodes),
+		CurrentOperation:     decoded.CurrentOperation,
+		CurrentOperationType: decoded.CurrentOperationType,
+		DurationMS:           decoded.DurationMS,
+		Duration:             decoded.Duration,
+		Ok:                   decoded.Ok,
+		Fail:                 decoded.Fail,
+		LoadSimulationStats:  decoded.LoadSimulationStats,
+		SortIndex:            decoded.SortIndex,
+		stepStats:            append([]stepStats(nil), decoded.StepStats...),
+	}
+	normalizeScenarioStats(s)
+	return nil
 }
 
 // FindStepStats returns the named step stats when present.

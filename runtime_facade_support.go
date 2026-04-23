@@ -1,6 +1,77 @@
 package loadstrike
 
-import "strings"
+import (
+	"encoding/json"
+	"fmt"
+	"os"
+	"regexp"
+	"strings"
+	"time"
+)
+
+const defaultLicenseValidationTimeoutSeconds = 10.0
+const defaultLicenseValidationBaseURL = "https://licensing.loadstrike.com"
+const licenseValidationBaseURLEnv = "LOADSTRIKE_INTERNAL_BLACKBOX_API_BASE_URL"
+
+// ReportFormat identifies a report file type.
+type ReportFormat string
+
+const (
+	ReportFormatHTML ReportFormat = "html"
+	ReportFormatTXT  ReportFormat = "txt"
+	ReportFormatCSV  ReportFormat = "csv"
+	ReportFormatMD   ReportFormat = "md"
+)
+
+type reportFailure struct {
+	ScenarioName string
+	StepName     string
+	StatusCode   string
+	Message      string
+}
+
+type reportTrace struct {
+	stepNames       []string
+	stepNameSet     map[string]struct{}
+	failedResponses []reportFailure
+}
+
+func newReportTrace() *reportTrace {
+	return &reportTrace{stepNameSet: make(map[string]struct{})}
+}
+
+func (t *reportTrace) addStep(stepName string) {
+	if t == nil || stepName == "" {
+		return
+	}
+	if _, exists := t.stepNameSet[stepName]; exists {
+		return
+	}
+	t.stepNameSet[stepName] = struct{}{}
+	t.stepNames = append(t.stepNames, stepName)
+}
+
+func (t *reportTrace) addFailure(scenarioName, stepName string, reply replyResult) {
+	if t == nil {
+		return
+	}
+	t.failedResponses = append(t.failedResponses, reportFailure{
+		ScenarioName: scenarioName,
+		StepName:     stepName,
+		StatusCode:   reply.StatusCode,
+		Message:      reply.Message,
+	})
+}
+
+func (t *reportTrace) merge(other *reportTrace) {
+	if t == nil || other == nil {
+		return
+	}
+	for _, stepName := range other.stepNames {
+		t.addStep(stepName)
+	}
+	t.failedResponses = append(t.failedResponses, other.failedResponses...)
+}
 
 // LoadStrikeReportingSink mirrors the .NET public reporting-sink contract.
 type LoadStrikeReportingSink interface {
@@ -14,8 +85,7 @@ type LoadStrikeReportingSink interface {
 	Dispose()
 }
 
-// LoadStrikeReportingSinkBase provides default no-op lifecycle behavior,
-// mirroring .NET default interface members in the closest valid Go form.
+// LoadStrikeReportingSinkBase provides default no-op lifecycle behavior.
 type LoadStrikeReportingSinkBase struct{}
 
 func (LoadStrikeReportingSinkBase) Init(LoadStrikeBaseContext, IConfiguration) LoadStrikeTask {
@@ -46,43 +116,6 @@ func (LoadStrikeReportingSinkBase) Dispose() {}
 
 type loadStrikeReportingSinkBase = LoadStrikeReportingSinkBase
 
-type loadStrikeTaskReportingSinkCore interface {
-	SinkName() string
-	Init(LoadStrikeBaseContext, IConfiguration) LoadStrikeTask
-	Start(LoadStrikeSessionStartInfo) LoadStrikeTask
-	SaveRealtimeStats([]LoadStrikeScenarioStats) LoadStrikeTask
-	SaveRealtimeMetrics(LoadStrikeMetricStats) LoadStrikeTask
-	Stop() LoadStrikeTask
-}
-
-type loadStrikeTaskReportingSinkInitializer interface {
-	Init(LoadStrikeBaseContext, IConfiguration) LoadStrikeTask
-}
-
-type loadStrikeTaskReportingSinkStarter interface {
-	Start(LoadStrikeSessionStartInfo) LoadStrikeTask
-}
-
-type loadStrikeTaskReportingSinkRealtimeStatsSaver interface {
-	SaveRealtimeStats([]LoadStrikeScenarioStats) LoadStrikeTask
-}
-
-type loadStrikeTaskReportingSinkRealtimeMetricsSaver interface {
-	SaveRealtimeMetrics(LoadStrikeMetricStats) LoadStrikeTask
-}
-
-type loadStrikeTaskReportingSinkStopper interface {
-	Stop() LoadStrikeTask
-}
-
-type loadStrikeTaskReportingSinkRunResultSaver interface {
-	SaveRunResult(LoadStrikeRunResult) LoadStrikeTask
-}
-
-type loadStrikeTaskReportingSinkDisposer interface {
-	Dispose() LoadStrikeTask
-}
-
 type loadStrikeAsyncReportingSink interface {
 	SinkName() string
 	InitAsync(LoadStrikeBaseContext, IConfiguration) LoadStrikeTask
@@ -103,11 +136,6 @@ type legacyLoadStrikeReportingSink interface {
 	Stop() error
 }
 
-type legacyLoadStrikeReportingSinkDisposer interface {
-	Dispose() error
-}
-
-// reportingSinkSpec defines an internal built-in reporting sink contract.
 type reportingSinkSpec struct {
 	loadStrikeReportingSinkBase
 	Kind          string                    `json:"Kind"`
@@ -123,7 +151,6 @@ func (s reportingSinkSpec) SinkName() string {
 	return strings.TrimSpace(strings.ToLower(s.Kind))
 }
 
-// InfluxDBSinkOptions defines InfluxDB sink options.
 type InfluxDBSinkOptions struct {
 	ConfigurationSectionPath string            `json:"ConfigurationSectionPath,omitempty"`
 	BaseURL                  string            `json:"BaseUrl,omitempty"`
@@ -137,7 +164,6 @@ type InfluxDBSinkOptions struct {
 	StaticTags               map[string]string `json:"StaticTags,omitempty"`
 }
 
-// TimescaleDBSinkOptions defines TimescaleDB sink options.
 type TimescaleDBSinkOptions struct {
 	ConfigurationSectionPath    string            `json:"ConfigurationSectionPath,omitempty"`
 	ConnectionString            string            `json:"ConnectionString,omitempty"`
@@ -149,7 +175,6 @@ type TimescaleDBSinkOptions struct {
 	StaticTags                  map[string]string `json:"StaticTags,omitempty"`
 }
 
-// GrafanaLokiSinkOptions defines Grafana Loki sink options.
 type GrafanaLokiSinkOptions struct {
 	ConfigurationSectionPath string            `json:"ConfigurationSectionPath,omitempty"`
 	BaseURL                  string            `json:"BaseUrl,omitempty"`
@@ -165,7 +190,6 @@ type GrafanaLokiSinkOptions struct {
 	MetricsHeaders           map[string]string `json:"MetricsHeaders,omitempty"`
 }
 
-// DatadogSinkOptions defines Datadog sink options.
 type DatadogSinkOptions struct {
 	ConfigurationSectionPath string            `json:"ConfigurationSectionPath,omitempty"`
 	BaseURL                  string            `json:"BaseUrl,omitempty"`
@@ -181,7 +205,6 @@ type DatadogSinkOptions struct {
 	StaticAttributes         map[string]string `json:"StaticAttributes,omitempty"`
 }
 
-// SplunkSinkOptions defines Splunk HEC sink options.
 type SplunkSinkOptions struct {
 	ConfigurationSectionPath string            `json:"ConfigurationSectionPath,omitempty"`
 	BaseURL                  string            `json:"BaseUrl,omitempty"`
@@ -195,7 +218,6 @@ type SplunkSinkOptions struct {
 	StaticFields             map[string]string `json:"StaticFields,omitempty"`
 }
 
-// OTELCollectorSinkOptions defines OTEL collector sink options.
 type OTELCollectorSinkOptions struct {
 	ConfigurationSectionPath string            `json:"ConfigurationSectionPath,omitempty"`
 	BaseURL                  string            `json:"BaseUrl,omitempty"`
@@ -210,7 +232,6 @@ type InfluxDbReportingSinkOptions = InfluxDBSinkOptions
 type TimescaleDbReportingSinkOptions = TimescaleDBSinkOptions
 type OtelCollectorReportingSinkOptions = OTELCollectorSinkOptions
 
-// InfluxDbReportingSink mirrors the .NET built-in sink type.
 type InfluxDbReportingSink struct {
 	loadStrikeReportingSinkBase
 	Options InfluxDbReportingSinkOptions
@@ -218,7 +239,6 @@ type InfluxDbReportingSink struct {
 
 func (InfluxDbReportingSink) SinkName() string { return "influxdb" }
 
-// TimescaleDbReportingSink mirrors the .NET built-in sink type.
 type TimescaleDbReportingSink struct {
 	loadStrikeReportingSinkBase
 	Options TimescaleDbReportingSinkOptions
@@ -226,7 +246,6 @@ type TimescaleDbReportingSink struct {
 
 func (TimescaleDbReportingSink) SinkName() string { return "timescaledb" }
 
-// GrafanaLokiReportingSink mirrors the .NET built-in sink type.
 type GrafanaLokiReportingSink struct {
 	loadStrikeReportingSinkBase
 	Options GrafanaLokiSinkOptions
@@ -234,7 +253,6 @@ type GrafanaLokiReportingSink struct {
 
 func (GrafanaLokiReportingSink) SinkName() string { return "grafanaloki" }
 
-// DatadogReportingSink mirrors the .NET built-in sink type.
 type DatadogReportingSink struct {
 	loadStrikeReportingSinkBase
 	Options DatadogSinkOptions
@@ -242,7 +260,6 @@ type DatadogReportingSink struct {
 
 func (DatadogReportingSink) SinkName() string { return "datadog" }
 
-// SplunkReportingSink mirrors the .NET built-in sink type.
 type SplunkReportingSink struct {
 	loadStrikeReportingSinkBase
 	Options SplunkSinkOptions
@@ -250,10 +267,134 @@ type SplunkReportingSink struct {
 
 func (SplunkReportingSink) SinkName() string { return "splunk" }
 
-// OtelCollectorReportingSink mirrors the .NET built-in sink type.
 type OtelCollectorReportingSink struct {
 	loadStrikeReportingSinkBase
 	Options OtelCollectorReportingSinkOptions
 }
 
 func (OtelCollectorReportingSink) SinkName() string { return "otelcollector" }
+
+type endpointProduceResult struct {
+	IsSuccess    bool
+	TrackingID   string
+	TimestampMS  int64
+	Payload      trackingPayload
+	ErrorMessage string
+}
+
+type endpointConsumeEvent struct {
+	TrackingID  string
+	TimestampMS int64
+	Payload     trackingPayload
+}
+
+var invalidReportFileCharacters = regexp.MustCompile(`[<>:"/\\|?*\x00-\x1f]`)
+
+func sanitizeReportFileName(value string) string {
+	return invalidReportFileCharacters.ReplaceAllString(value, "_")
+}
+
+func firstNonBlank(values ...string) string {
+	for _, value := range values {
+		if strings.TrimSpace(value) != "" {
+			return value
+		}
+	}
+	return ""
+}
+
+func cloneStringMap(source map[string]string) map[string]string {
+	if len(source) == 0 {
+		return map[string]string{}
+	}
+	cloned := make(map[string]string, len(source))
+	for key, value := range source {
+		cloned[key] = value
+	}
+	return cloned
+}
+
+func currentMachineName() string {
+	name, err := os.Hostname()
+	if err != nil || strings.TrimSpace(name) == "" {
+		return "unknown"
+	}
+	return name
+}
+
+func resolveLicensingAPIBaseURL() string {
+	if value := strings.TrimRight(strings.TrimSpace(os.Getenv(licenseValidationBaseURLEnv)), "/"); value != "" {
+		return value
+	}
+	return defaultLicenseValidationBaseURL
+}
+
+func buildURL(baseURL string, relative string) string {
+	return strings.TrimRight(baseURL, "/") + "/" + strings.TrimLeft(relative, "/")
+}
+
+func generateSessionID() string {
+	return strings.ReplaceAll(fmt.Sprintf("%d", time.Now().UnixNano()), "-", "")
+}
+
+func asString(value any) string {
+	if value == nil {
+		return ""
+	}
+	return fmt.Sprint(value)
+}
+
+func asInt(value any) int {
+	switch typed := value.(type) {
+	case int:
+		return typed
+	case int64:
+		return int(typed)
+	case float64:
+		return int(typed)
+	case json.Number:
+		parsed, _ := typed.Int64()
+		return int(parsed)
+	case bool:
+		if typed {
+			return 1
+		}
+		return 0
+	default:
+		var parsed float64
+		if _, err := fmt.Sscan(fmt.Sprint(value), &parsed); err == nil {
+			return int(parsed)
+		}
+		return 0
+	}
+}
+
+func asDouble(value any) float64 {
+	switch typed := value.(type) {
+	case float64:
+		return typed
+	case int:
+		return float64(typed)
+	case int64:
+		return float64(typed)
+	case json.Number:
+		parsed, _ := typed.Float64()
+		return parsed
+	default:
+		var parsed float64
+		if _, err := fmt.Sscan(fmt.Sprint(value), &parsed); err == nil {
+			return parsed
+		}
+		return 0
+	}
+}
+
+func asBool(value any) bool {
+	switch typed := value.(type) {
+	case bool:
+		return typed
+	default:
+		text := strings.ToLower(strings.TrimSpace(fmt.Sprint(value)))
+		return text == "1" || text == "true" || text == "yes" || text == "on"
+	}
+}

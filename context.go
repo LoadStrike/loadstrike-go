@@ -385,105 +385,22 @@ func (c *contextState) LoadInfraConfig(path string) *contextState {
 
 // Run executes the scenarios registered on this reusable context.
 func (c *contextState) Run(args ...string) (runResult, error) {
-	if c == nil || len(c.scenarios) == 0 {
+	if c == nil {
+		return runResult{}, fmt.Errorf("context must be provided")
+	}
+	if len(c.scenarios) == 0 {
 		return runResult{}, errNoScenarios
 	}
 	if err := applyRunArgs(c, args); err != nil {
 		return runResult{}, err
 	}
-
-	startedUTC := time.Now().UTC()
-	c.testInfo = currentTestInfo(*c, startedUTC)
-	c.nodeInfo = currentNodeInfo(c.NodeType, LoadStrikeOperationTypeComplete)
-	if c.Logger == nil {
-		c.Logger = newLoadStrikeLogger(nil)
+	if strings.TrimSpace(c.RunnerKey) == "" {
+		return runResult{}, fmt.Errorf("Runner key is required. Call WithRunnerKey(...) before Run().")
 	}
 
-	lease, err := acquireLicenseLease(c)
-	if err != nil {
-		return runResult{}, err
-	}
-	if lease != nil && lease.stop != nil {
-		defer lease.stop()
-	}
-
-	pluginManager := newWorkerPluginManager(*c)
-	if err := pluginManager.init(*c, loadInfraConfigMap(c.InfraConfigPath)); err != nil {
-		return runResult{}, err
-	}
-	sessionInfo := buildSessionStartInfo(*c, c.scenarios)
-	if err := pluginManager.start(sessionInfo); err != nil {
-		return runResult{}, err
-	}
-	defer func() {
-		_ = pluginManager.stop()
-		_ = pluginManager.dispose()
-	}()
-
-	sinkManager, err := newReportingSinkManager(*c)
-	if err != nil {
-		return runResult{}, err
-	}
-	sinkManager.init()
-	sinkManager.start(sessionInfo)
-	defer func() {
-		sinkManager.stop()
-		sinkManager.dispose()
-	}()
-
-	var result runResult
-	var coordinatorLogger *runLogger
-	if c.NodeType == NodeTypeCoordinator && strings.TrimSpace(c.NatsServerURL) != "" {
-		coordinatorLogger, err = startRunLogger(
-			*c,
-			normalizeTestInfo(testInfo{
-				TestSuite:  c.testInfo.TestSuite,
-				TestName:   c.testInfo.TestName,
-				SessionID:  c.testInfo.SessionID,
-				ClusterID:  c.testInfo.ClusterID,
-				CreatedUTC: c.testInfo.CreatedUTC,
-			}),
-			c.nodeInfo,
-		)
-		if err != nil {
-			return runResult{}, err
-		}
-	}
-	if c.NodeType == NodeTypeCoordinator && strings.TrimSpace(c.NatsServerURL) != "" {
-		result, err = executeClustered(*c, c.scenarios)
-	} else {
-		result, err = execute(*c, c.scenarios)
-	}
-	if coordinatorLogger != nil {
-		defer coordinatorLogger.closeWithResult(&result, err)
-		if path := coordinatorLogger.pathValue(); path != "" {
-			result.LogFiles = append(result.LogFiles, path)
-		}
-	}
-	if err != nil {
-		return runResult{}, err
-	}
-	normalizeRunResult(&result)
-
-	sinkManager.saveRealtime(result)
-
-	pluginsData, err := pluginManager.collect(result)
-	if err != nil {
-		return runResult{}, err
-	}
-	result.PluginsData = pluginsData
-
-	if c.ReportsEnabled {
-		if err := writeReports(*c, &result); err != nil {
-			return runResult{}, err
-		}
-	}
-
-	sinkManager.apply(&result)
-	sinkManager.saveRunResult(result)
-	sinkManager.apply(&result)
-
-	return result, nil
+	registry := newRuntimeCallbackRegistry()
+	defer registry.Close()
+	return runViaPrivateRuntime(c, registry)
 }
 
 func (c *contextState) recordConfigError(err error) {
