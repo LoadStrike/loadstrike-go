@@ -39,6 +39,7 @@ Targeted execution, realtime console metrics, and validation timing are also ava
 ## What You Can Build
 
 - scenario-based load tests with named steps
+- trace-to-test Autopilot starter generation from captured HAR, OpenTelemetry trace JSON, browser recordings, or source and destination message pairs
 - HTTP and event-driven transaction workflows
 - custom metrics, thresholds, and report generation
 - local report output in HTML, TXT, CSV, and Markdown
@@ -76,6 +77,14 @@ func main() {
 ```
 
 `Run()` returns the full run result, including scenario metrics, generated report files, and sink status information.
+
+## Trace-To-Test Autopilot
+
+Use `GenerateAutopilot(...)` or `LoadStrikeAutopilot.Generate(...)` to infer a starter plan from a captured artifact. Check `result.Readiness` and `result.ReadinessFailures` first; call `result.BuildScenario()` only when it is `LoadStrikeAutopilotReady`, then execute the scenario through the normal runner with a valid `RunnerKey`.
+
+Use `SecretBindings` to map redaction locations such as `header:Authorization` or `body:$.client_secret` to environment variables, `TrackingSelector` when the selector cannot be inferred, and `EndpointBindings`, `AllowedReplayHosts`, or `BaseURLRewrite` when a replay target must be bound. Secret values are resolved when the generated scenario runs; they are not written into the generated plan. Any gate satisfied by user setup is omitted from `ReadinessFailures`.
+
+The public Go wrapper keeps the customer-facing API in `loadstrike.com/sdk/go` and delegates artifact parsing, inference, and replay execution to the private runtime artifact. If the runtime artifact is not already cached, provide the normal runner key on the Autopilot request options so the wrapper can resolve it; the generated scenario still runs through `WithRunnerKey(...)`.
 
 ## Runner Keys
 

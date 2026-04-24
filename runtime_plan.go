@@ -70,19 +70,20 @@ type runtimePolicyPlan struct {
 }
 
 type runtimeScenarioPlan struct {
-	Name                   string                     `json:"name"`
-	StepCallbackURL        string                     `json:"stepCallbackUrl,omitempty"`
-	InitCallbackURL        string                     `json:"initCallbackUrl,omitempty"`
-	CleanCallbackURL       string                     `json:"cleanCallbackUrl,omitempty"`
-	MetricsCallbackURL     string                     `json:"metricsCallbackUrl,omitempty"`
-	Weight                 int                        `json:"weight,omitempty"`
-	RestartIterationOnFail bool                       `json:"restartIterationOnFail,omitempty"`
-	MaxFailCount           int                        `json:"maxFailCount,omitempty"`
-	WarmUpDurationSeconds  float64                    `json:"warmUpDurationSeconds,omitempty"`
-	WarmUpDisabled         bool                       `json:"warmUpDisabled,omitempty"`
-	LoadSimulations        []LoadSimulation           `json:"loadSimulations,omitempty"`
-	Thresholds             []ThresholdSpec            `json:"thresholds,omitempty"`
-	Tracking               *TrackingConfigurationSpec `json:"tracking,omitempty"`
+	Name                   string                         `json:"name"`
+	StepCallbackURL        string                         `json:"stepCallbackUrl,omitempty"`
+	InitCallbackURL        string                         `json:"initCallbackUrl,omitempty"`
+	CleanCallbackURL       string                         `json:"cleanCallbackUrl,omitempty"`
+	MetricsCallbackURL     string                         `json:"metricsCallbackUrl,omitempty"`
+	Weight                 int                            `json:"weight,omitempty"`
+	RestartIterationOnFail bool                           `json:"restartIterationOnFail,omitempty"`
+	MaxFailCount           int                            `json:"maxFailCount,omitempty"`
+	WarmUpDurationSeconds  float64                        `json:"warmUpDurationSeconds,omitempty"`
+	WarmUpDisabled         bool                           `json:"warmUpDisabled,omitempty"`
+	LoadSimulations        []LoadSimulation               `json:"loadSimulations,omitempty"`
+	Thresholds             []ThresholdSpec                `json:"thresholds,omitempty"`
+	Tracking               *TrackingConfigurationSpec     `json:"tracking,omitempty"`
+	AutopilotHTTP          *LoadStrikeAutopilotHTTPReplay `json:"autopilotHttp,omitempty"`
 }
 
 func newRuntimeContextPlan(context contextState) runtimeContextPlan {
@@ -148,7 +149,6 @@ func buildRuntimePlan(
 	plan.Context.RuntimePolicies = contextPlan.RuntimePolicies
 
 	for _, scenario := range context.scenarios {
-		scenarioID := registry.registerScenario(scenario)
 		item := runtimeScenarioPlan{
 			Name:                   scenario.Name,
 			Weight:                 scenario.Weight,
@@ -158,14 +158,18 @@ func buildRuntimePlan(
 			WarmUpDisabled:         scenario.WarmUpDisabled,
 			LoadSimulations:        append([]LoadSimulation(nil), scenario.LoadSimulations...),
 			Thresholds:             append([]ThresholdSpec(nil), scenario.Thresholds...),
-			StepCallbackURL:        httpHost.scenarioCallbackURL(scenarioID, "step"),
-			MetricsCallbackURL:     httpHost.scenarioCallbackURL(scenarioID, "metrics"),
+			AutopilotHTTP:          cloneAutopilotHTTPReplay(scenario.AutopilotHTTP),
 		}
-		if scenario.Init != nil {
-			item.InitCallbackURL = httpHost.scenarioCallbackURL(scenarioID, "init")
-		}
-		if scenario.Clean != nil {
-			item.CleanCallbackURL = httpHost.scenarioCallbackURL(scenarioID, "clean")
+		if scenario.AutopilotHTTP == nil {
+			scenarioID := registry.registerScenario(scenario)
+			item.StepCallbackURL = httpHost.scenarioCallbackURL(scenarioID, "step")
+			item.MetricsCallbackURL = httpHost.scenarioCallbackURL(scenarioID, "metrics")
+			if scenario.Init != nil {
+				item.InitCallbackURL = httpHost.scenarioCallbackURL(scenarioID, "init")
+			}
+			if scenario.Clean != nil {
+				item.CleanCallbackURL = httpHost.scenarioCallbackURL(scenarioID, "clean")
+			}
 		}
 		if scenario.Tracking != nil {
 			item.Tracking = cloneTrackingConfigurationWithCallbackURLs(scenario.Tracking, registry, httpHost)

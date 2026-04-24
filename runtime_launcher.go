@@ -98,6 +98,60 @@ func runViaPrivateRuntime(contextState *contextState, registry *runtimeCallbackR
 	return result.toNative(), nil
 }
 
+func runAutopilotViaPrivateRuntime(request LoadStrikeAutopilotRequest) (LoadStrikeAutopilotResult, error) {
+	runtimePath, err := newRuntimeArtifactResolver(runtimeResolverConfig{
+		Version: RuntimeArtifactVersion(),
+		GOOS:    runtimeGOOS(),
+		GOARCH:  runtimeGOARCH(),
+	}).resolveRuntimePath(request.Options.RunnerKey)
+	if err != nil {
+		return LoadStrikeAutopilotResult{}, err
+	}
+
+	tempDir, err := os.MkdirTemp("", "loadstrike-autopilot-*")
+	if err != nil {
+		return LoadStrikeAutopilotResult{}, fmt.Errorf("create autopilot temp dir: %w", err)
+	}
+	defer os.RemoveAll(tempDir)
+
+	requestPath := filepath.Join(tempDir, "autopilot-request.json")
+	resultPath := filepath.Join(tempDir, "autopilot-result.json")
+	requestBytes, err := json.Marshal(request)
+	if err != nil {
+		return LoadStrikeAutopilotResult{}, fmt.Errorf("marshal autopilot request: %w", err)
+	}
+	if err := os.WriteFile(requestPath, requestBytes, 0o600); err != nil {
+		return LoadStrikeAutopilotResult{}, fmt.Errorf("write autopilot request: %w", err)
+	}
+
+	cmd := exec.Command(
+		runtimePath,
+		"--autopilot-input", requestPath,
+		"--autopilot-output", resultPath,
+		"--sdk-version", RuntimeArtifactVersion(),
+		"--protocol", strconv.Itoa(RuntimeProtocolVersion()),
+	)
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		message := strings.TrimSpace(string(output))
+		if message == "" {
+			return LoadStrikeAutopilotResult{}, fmt.Errorf("loadstrike autopilot runtime failed: %w", err)
+		}
+		return LoadStrikeAutopilotResult{}, fmt.Errorf("loadstrike autopilot runtime failed: %w: %s", err, message)
+	}
+
+	resultBytes, err := os.ReadFile(resultPath)
+	if err != nil {
+		return LoadStrikeAutopilotResult{}, fmt.Errorf("read autopilot result: %w", err)
+	}
+
+	var result LoadStrikeAutopilotResult
+	if err := json.Unmarshal(resultBytes, &result); err != nil {
+		return LoadStrikeAutopilotResult{}, fmt.Errorf("decode autopilot result: %w", err)
+	}
+	return result, nil
+}
+
 type runtimeHostHandle struct {
 	address  string
 	listener net.Listener

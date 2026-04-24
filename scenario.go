@@ -44,6 +44,7 @@ type scenarioDefinition struct {
 	Thresholds             []ThresholdSpec
 	Tracking               *TrackingConfigurationSpec
 	Steps                  []scenarioStep
+	AutopilotHTTP          *LoadStrikeAutopilotHTTPReplay
 }
 
 type scenarioLike interface {
