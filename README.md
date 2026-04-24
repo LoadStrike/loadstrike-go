@@ -44,7 +44,7 @@ Targeted execution, realtime console metrics, and validation timing are also ava
 - custom metrics, thresholds, and report generation
 - local report output in HTML, TXT, CSV, and Markdown
 - clustering and distributed execution
-- supported observability sink integrations on eligible plans
+- supported observability sink integrations on Business and Enterprise
 
 Built-in transport coverage includes HTTP, Kafka, RabbitMQ, NATS, Redis Streams, Azure Event Hubs, Push Diffusion, and delegate-based custom streams.
 
