@@ -17,6 +17,7 @@ type TrackingConfigurationSpec struct {
 	TrackingFieldValueCaseSensitive bool                  `json:"TrackingFieldValueCaseSensitive,omitempty"`
 	GatherByFieldValueCaseSensitive bool                  `json:"GatherByFieldValueCaseSensitive,omitempty"`
 	ExecuteOriginalScenarioRun      bool                  `json:"ExecuteOriginalScenarioRun,omitempty"`
+	UseLoadStrikeTraceIDHeader      bool                  `json:"UseLoadStrikeTraceIdHeader,omitempty"`
 	MetricPrefix                    string                `json:"MetricPrefix,omitempty"`
 	CorrelationStore                *CorrelationStoreSpec `json:"CorrelationStore,omitempty"`
 }

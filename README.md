@@ -48,6 +48,12 @@ Targeted execution, realtime console metrics, and validation timing are also ava
 
 Built-in transport coverage includes HTTP, Kafka, RabbitMQ, NATS, Redis Streams, Azure Event Hubs, Push Diffusion, and delegate-based custom streams.
 
+## Cross-Platform Tracking
+
+Cross-platform tracking normally uses an explicit selector such as `header:X-Correlation-Id` or `json:$.trackingId` on each endpoint. When LoadStrike is generating the source traffic and the messages do not already have a business tracking field, set `UseLoadStrikeTraceIDHeader` to `true` and omit `TrackingField`; the runtime uses `LoadStrikeTraceIDTrackingField` (`header:loadstrike-trace-id`) and injects a GUID into `LoadStrikeTraceIDHeader`.
+
+Source endpoints in `Consume` mode and `CorrelateExistingTraffic` runs observe existing traffic only, so they do not inject `loadstrike-trace-id`. In those monitoring flows the header must already exist on the messages for it to be used for matching.
+
 ## Quick Start
 
 ```go
