@@ -54,6 +54,29 @@ Cross-platform tracking normally uses an explicit selector such as `header:X-Cor
 
 Source endpoints in `Consume` mode and `CorrelateExistingTraffic` runs observe existing traffic only, so they do not inject `loadstrike-trace-id`. In those monitoring flows the header must already exist on the messages for it to be used for matching.
 
+When both sides of the workflow already exist, set `RunMode` to `CorrelateExistingTraffic` and call `ForDuration(...)` on the tracking configuration. `ForDuration` defines the observation window and accepts an optional `context.Context` to stop observation early. Do not add `WithLoadSimulations(...)` to this mode.
+
+```go
+observationContext, stopObservation := context.WithCancel(context.Background())
+defer stopObservation()
+
+tracking := (&loadstrike.LoadStrikeTrackingConfigurationSpec{
+	RunMode: "CorrelateExistingTraffic",
+	Source: &loadstrike.EndpointSpec{
+		Kind:          "Kafka",
+		Name:          "orders-source",
+		Mode:          "Consume",
+		TrackingField: "json:$.trackingId",
+	},
+	Destination: &loadstrike.EndpointSpec{
+		Kind:          "Kafka",
+		Name:          "orders-completed",
+		Mode:          "Consume",
+		TrackingField: "json:$.trackingId",
+	},
+}).ForDuration(loadstrike.DurationFromSeconds(600), observationContext)
+```
+
 ## Quick Start
 
 ```go

@@ -7,19 +7,37 @@ import (
 
 // TrackingConfigurationSpec defines public cross-platform tracking options.
 type TrackingConfigurationSpec struct {
-	Source                          *EndpointSpec         `json:"Source,omitempty"`
-	Destination                     *EndpointSpec         `json:"Destination,omitempty"`
-	RunMode                         string                `json:"RunMode,omitempty"`
-	CorrelationTimeoutSeconds       float64               `json:"CorrelationTimeoutSeconds,omitempty"`
-	TimeoutSweepIntervalSeconds     float64               `json:"TimeoutSweepIntervalSeconds,omitempty"`
-	TimeoutBatchSize                int                   `json:"TimeoutBatchSize,omitempty"`
-	TimeoutCountsAsFailure          bool                  `json:"TimeoutCountsAsFailure,omitempty"`
-	TrackingFieldValueCaseSensitive bool                  `json:"TrackingFieldValueCaseSensitive,omitempty"`
-	GatherByFieldValueCaseSensitive bool                  `json:"GatherByFieldValueCaseSensitive,omitempty"`
-	ExecuteOriginalScenarioRun      bool                  `json:"ExecuteOriginalScenarioRun,omitempty"`
-	UseLoadStrikeTraceIDHeader      bool                  `json:"UseLoadStrikeTraceIdHeader,omitempty"`
-	MetricPrefix                    string                `json:"MetricPrefix,omitempty"`
-	CorrelationStore                *CorrelationStoreSpec `json:"CorrelationStore,omitempty"`
+	Source                             *EndpointSpec         `json:"Source,omitempty"`
+	Destination                        *EndpointSpec         `json:"Destination,omitempty"`
+	RunMode                            string                `json:"RunMode,omitempty"`
+	ObservationDurationSeconds         float64               `json:"ObservationDurationSeconds,omitempty"`
+	CorrelationTimeoutSeconds          float64               `json:"CorrelationTimeoutSeconds,omitempty"`
+	TimeoutSweepIntervalSeconds        float64               `json:"TimeoutSweepIntervalSeconds,omitempty"`
+	TimeoutBatchSize                   int                   `json:"TimeoutBatchSize,omitempty"`
+	TimeoutCountsAsFailure             bool                  `json:"TimeoutCountsAsFailure,omitempty"`
+	TrackingFieldValueCaseSensitive    bool                  `json:"TrackingFieldValueCaseSensitive,omitempty"`
+	GatherByFieldValueCaseSensitive    bool                  `json:"GatherByFieldValueCaseSensitive,omitempty"`
+	ExecuteOriginalScenarioRun         bool                  `json:"ExecuteOriginalScenarioRun,omitempty"`
+	UseLoadStrikeTraceIDHeader         bool                  `json:"UseLoadStrikeTraceIdHeader,omitempty"`
+	MetricPrefix                       string                `json:"MetricPrefix,omitempty"`
+	CorrelationStore                   *CorrelationStoreSpec `json:"CorrelationStore,omitempty"`
+	ObservationCancellationContext     stdcontext.Context    `json:"-"`
+	ObservationCancellationCallbackURL string                `json:"ObservationCancellationCallbackUrl,omitempty"`
+}
+
+// LoadStrikeTrackingConfigurationSpec exposes the shared runtime-contract tracking name.
+type LoadStrikeTrackingConfigurationSpec = TrackingConfigurationSpec
+
+// ForDuration configures the observation window sent to the private runtime for CorrelateExistingTraffic.
+func (c *TrackingConfigurationSpec) ForDuration(duration TimeSpan, cancellationContexts ...stdcontext.Context) *TrackingConfigurationSpec {
+	if c == nil {
+		return nil
+	}
+	c.ObservationDurationSeconds = duration.Seconds()
+	if len(cancellationContexts) > 0 && cancellationContexts[0] != nil {
+		c.ObservationCancellationContext = cancellationContexts[0]
+	}
+	return c
 }
 
 // CorrelationStoreSpec defines correlation-store configuration.
