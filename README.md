@@ -109,11 +109,11 @@ func main() {
 
 ## Trace-To-Test Autopilot
 
-Use `GenerateAutopilot(...)` or `LoadStrikeAutopilot.Generate(...)` to infer a starter plan from a captured artifact. Check `result.Readiness` and `result.ReadinessFailures` first; call `result.BuildScenario()` only when it is `LoadStrikeAutopilotReady`, then execute the scenario through the normal runner with a valid `RunnerKey`.
+Use `GenerateAutopilot(...)` or `LoadStrikeAutopilot.Generate(...)` to infer a starter plan from a captured artifact. Set `LoadStrikeAutopilotOptions.RunnerKey` so generation can validate the Trace-To-Test Autopilot entitlement. Check `result.Readiness` and `result.ReadinessFailures` first; call `result.BuildScenario()` only when it is `LoadStrikeAutopilotReady`, then execute the scenario through the normal runner with a valid `RunnerKey`.
 
 Use `SecretBindings` to map redaction locations such as `header:Authorization` or `body:$.client_secret` to environment variables, `TrackingSelector` when the selector cannot be inferred, and `EndpointBindings`, `AllowedReplayHosts`, or `BaseURLRewrite` when a replay target must be bound. Secret values are resolved when the generated scenario runs; they are not written into the generated plan. Any gate satisfied by user setup is omitted from `ReadinessFailures`.
 
-The public Go wrapper keeps the customer-facing API in `loadstrike.com/sdk/go` and delegates artifact parsing, inference, and replay execution to the private runtime artifact. If the runtime artifact is not already cached, provide the normal runner key on the Autopilot request options so the wrapper can resolve it; the generated scenario still runs through `WithRunnerKey(...)`.
+The public Go wrapper keeps the customer-facing API in `loadstrike.com/sdk/go` and delegates artifact parsing, inference, and replay execution to the private runtime artifact. Provide the normal runner key on the Autopilot request options so the wrapper can resolve the private runtime artifact and the runtime can validate the Autopilot entitlement; the generated scenario still runs through `WithRunnerKey(...)`.
 
 ## Runner Keys
 

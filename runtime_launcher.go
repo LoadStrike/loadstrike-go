@@ -128,6 +128,8 @@ func runAutopilotViaPrivateRuntime(request LoadStrikeAutopilotRequest) (LoadStri
 		runtimePath,
 		"--autopilot-input", requestPath,
 		"--autopilot-output", resultPath,
+		"--autopilot-runner-key", request.Options.RunnerKey,
+		"--autopilot-license-validation-timeout-seconds", strconv.FormatFloat(request.Options.LicenseValidationTimeoutSeconds, 'f', -1, 64),
 		"--sdk-version", RuntimeArtifactVersion(),
 		"--protocol", strconv.Itoa(RuntimeProtocolVersion()),
 	)

@@ -2,6 +2,7 @@ package loadstrike
 
 import (
 	"encoding/json"
+	"flag"
 	"fmt"
 	"os"
 	"regexp"
@@ -337,10 +338,17 @@ func currentMachineName() string {
 }
 
 func resolveLicensingAPIBaseURL() string {
-	if value := strings.TrimRight(strings.TrimSpace(os.Getenv(licenseValidationBaseURLEnv)), "/"); value != "" {
-		return value
+	if isGoTestBinary() {
+		if value := strings.TrimRight(strings.TrimSpace(os.Getenv(licenseValidationBaseURLEnv)), "/"); value != "" {
+			return value
+		}
 	}
 	return defaultLicenseValidationBaseURL
+}
+
+func isGoTestBinary() bool {
+	name := strings.ToLower(os.Args[0])
+	return (strings.HasSuffix(name, ".test") || strings.HasSuffix(name, ".test.exe")) && flag.Lookup("test.v") != nil
 }
 
 func buildURL(baseURL string, relative string) string {

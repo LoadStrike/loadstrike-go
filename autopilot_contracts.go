@@ -24,14 +24,15 @@ type LoadStrikeAutopilotRequest struct {
 }
 
 type LoadStrikeAutopilotOptions struct {
-	ScenarioName         string                               `json:"ScenarioName,omitempty"`
-	IncludePreviewReport bool                                 `json:"IncludePreviewReport,omitempty"`
-	AllowedReplayHosts   []string                             `json:"AllowedReplayHosts,omitempty"`
-	BaseURLRewrite       string                               `json:"BaseUrlRewrite,omitempty"`
-	TrackingSelector     string                               `json:"TrackingSelector,omitempty"`
-	SecretBindings       []LoadStrikeAutopilotSecretBinding   `json:"SecretBindings,omitempty"`
-	EndpointBindings     []LoadStrikeAutopilotEndpointBinding `json:"EndpointBindings,omitempty"`
-	RunnerKey            string                               `json:"-"`
+	ScenarioName                    string                               `json:"ScenarioName,omitempty"`
+	IncludePreviewReport            bool                                 `json:"IncludePreviewReport,omitempty"`
+	AllowedReplayHosts              []string                             `json:"AllowedReplayHosts,omitempty"`
+	BaseURLRewrite                  string                               `json:"BaseUrlRewrite,omitempty"`
+	TrackingSelector                string                               `json:"TrackingSelector,omitempty"`
+	SecretBindings                  []LoadStrikeAutopilotSecretBinding   `json:"SecretBindings,omitempty"`
+	EndpointBindings                []LoadStrikeAutopilotEndpointBinding `json:"EndpointBindings,omitempty"`
+	RunnerKey                       string                               `json:"-"`
+	LicenseValidationTimeoutSeconds float64                              `json:"-"`
 }
 
 type LoadStrikeAutopilotSecretBinding struct {

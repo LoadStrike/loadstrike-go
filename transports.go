@@ -75,6 +75,7 @@ type EndpointSpec struct {
 	NATS                              *NATSEndpointOptions           `json:"Nats,omitempty"`
 	RedisStreams                      *RedisStreamsEndpointOptions   `json:"RedisStreams,omitempty"`
 	AzureEventHubs                    *AzureEventHubsEndpointOptions `json:"AzureEventHubs,omitempty"`
+	SQS                               *SQSEndpointOptions            `json:"Sqs,omitempty"`
 	DelegateStream                    *DelegateEndpointOptions       `json:"DelegateStream,omitempty"`
 	PushDiffusion                     *PushDiffusionEndpointOptions  `json:"PushDiffusion,omitempty"`
 }
@@ -204,6 +205,20 @@ type AzureEventHubsEndpointOptions struct {
 	PartitionID       string `json:"PartitionId,omitempty"`
 	PartitionKey      string `json:"PartitionKey,omitempty"`
 	PartitionCount    int    `json:"PartitionCount,omitempty"`
+}
+
+// SQSEndpointOptions defines AWS SQS endpoint options.
+type SQSEndpointOptions struct {
+	QueueURL                 string `json:"QueueUrl,omitempty"`
+	Region                   string `json:"Region,omitempty"`
+	ServiceURL               string `json:"ServiceUrl,omitempty"`
+	AccessKeyID              string `json:"AccessKeyId,omitempty"`
+	SecretAccessKey          string `json:"SecretAccessKey,omitempty"`
+	SessionToken             string `json:"SessionToken,omitempty"`
+	WaitTimeSeconds          int    `json:"WaitTimeSeconds,omitempty"`
+	MaxNumberOfMessages      int    `json:"MaxNumberOfMessages,omitempty"`
+	VisibilityTimeoutSeconds int    `json:"VisibilityTimeoutSeconds,omitempty"`
+	DeleteAfterConsume       *bool  `json:"DeleteAfterConsume,omitempty"`
 }
 
 // DelegateEndpointOptions defines delegate-stream callback options.
