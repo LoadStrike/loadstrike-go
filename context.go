@@ -245,6 +245,19 @@ func (c *contextState) WithReportingSinks(reportingSinks ...LoadStrikeReportingS
 	return c
 }
 
+// WithPortalReporting records the managed LoadStrike portal reporting sink.
+func (c *contextState) WithPortalReporting() *contextState {
+	if c != nil {
+		for _, sink := range c.ReportingSinks {
+			if strings.EqualFold(strings.TrimSpace(sinkName(sink)), "portal") {
+				return c
+			}
+		}
+		c.ReportingSinks = append(c.ReportingSinks, PortalReportingSink{})
+	}
+	return c
+}
+
 // WithWorkerPlugins records worker plugins configured for the run.
 func (c *contextState) WithWorkerPlugins(workerPlugins ...LoadStrikeWorkerPlugin) *contextState {
 	if c != nil {
@@ -528,11 +541,19 @@ func isReportingSinkLike(value any) bool {
 		GrafanaLokiReportingSink, *GrafanaLokiReportingSink,
 		DatadogReportingSink, *DatadogReportingSink,
 		SplunkReportingSink, *SplunkReportingSink,
-		OtelCollectorReportingSink, *OtelCollectorReportingSink:
+		OtelCollectorReportingSink, *OtelCollectorReportingSink,
+		PortalReportingSink, *PortalReportingSink:
 		return true
 	default:
 		return false
 	}
+}
+
+func sinkName(sink LoadStrikeReportingSink) string {
+	if sink == nil {
+		return ""
+	}
+	return sink.SinkName()
 }
 
 func isRuntimePolicyLike(value any) bool {

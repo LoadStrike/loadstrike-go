@@ -129,6 +129,11 @@ func WithReportingSinks(context LoadStrikeContext, reportingSinks ...LoadStrikeR
 	return requireLoadStrikeContext(context).WithReportingSinks(reportingSinks...)
 }
 
+// WithPortalReporting sends run reports to the LoadStrike customer portal.
+func WithPortalReporting(context LoadStrikeContext) LoadStrikeContext {
+	return requireLoadStrikeContext(context).WithPortalReporting()
+}
+
 // WithRuntimePolicies configures runtime policies. Use this when you want to set runtime policies on the current SDK object.
 func WithRuntimePolicies(context LoadStrikeContext, runtimePolicies ...LoadStrikeRuntimePolicy) LoadStrikeContext {
 	return requireLoadStrikeContext(context).WithRuntimePolicies(runtimePolicies...)

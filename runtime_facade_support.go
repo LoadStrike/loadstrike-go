@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"net/url"
 	"os"
 	"regexp"
 	"strings"
@@ -12,6 +13,7 @@ import (
 
 const defaultLicenseValidationTimeoutSeconds = 10.0
 const defaultLicenseValidationBaseURL = "https://licensing.loadstrike.com"
+const testLicenseValidationBaseURL = "http://127.0.0.1:1"
 const licenseValidationBaseURLEnv = "LOADSTRIKE_INTERNAL_BLACKBOX_API_BASE_URL"
 
 // ReportFormat identifies a report file type.
@@ -289,6 +291,13 @@ type OtelCollectorReportingSink struct {
 // SinkName exposes the sink name operation. Use this when interacting with the SDK through this surface.
 func (OtelCollectorReportingSink) SinkName() string { return "otelcollector" }
 
+type PortalReportingSink struct {
+	loadStrikeReportingSinkBase
+}
+
+// SinkName exposes the sink name operation. Use this when interacting with the SDK through this surface.
+func (PortalReportingSink) SinkName() string { return "portal" }
+
 type endpointProduceResult struct {
 	IsSuccess    bool
 	TrackingID   string
@@ -340,10 +349,25 @@ func currentMachineName() string {
 func resolveLicensingAPIBaseURL() string {
 	if isGoTestBinary() {
 		if value := strings.TrimRight(strings.TrimSpace(os.Getenv(licenseValidationBaseURLEnv)), "/"); value != "" {
-			return value
+			if isLoopbackHTTPBaseURL(value) {
+				return value
+			}
 		}
+		return testLicenseValidationBaseURL
 	}
 	return defaultLicenseValidationBaseURL
+}
+
+func isLoopbackHTTPBaseURL(value string) bool {
+	parsed, err := url.Parse(value)
+	if err != nil {
+		return false
+	}
+	if parsed.Scheme != "http" {
+		return false
+	}
+	host := strings.ToLower(strings.TrimSpace(parsed.Hostname()))
+	return host == "localhost" || host == "127.0.0.1" || host == "::1" || strings.HasSuffix(host, ".localhost")
 }
 
 func isGoTestBinary() bool {

@@ -215,6 +215,12 @@ func (r *runnerState) WithReportingSinks(reportingSinks ...LoadStrikeReportingSi
 	return r
 }
 
+// WithPortalReporting records the managed LoadStrike portal reporting sink.
+func (r *runnerState) WithPortalReporting() *runnerState {
+	r.context.WithPortalReporting()
+	return r
+}
+
 // WithWorkerPlugins records worker plugins configured for the run.
 func (r *runnerState) WithWorkerPlugins(workerPlugins ...LoadStrikeWorkerPlugin) *runnerState {
 	r.context.WithWorkerPlugins(workerPlugins...)

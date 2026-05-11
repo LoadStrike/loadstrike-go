@@ -283,6 +283,12 @@ func buildRuntimeReportingSinkPlan(
 			options := typed.Options
 			return runtimeReportingSinkPlan{Kind: "otelcollector", Name: typed.SinkName(), OTELCollector: &options}, nil
 		}
+	case PortalReportingSink:
+		return runtimeReportingSinkPlan{Kind: "portal", Name: typed.SinkName()}, nil
+	case *PortalReportingSink:
+		if typed != nil {
+			return runtimeReportingSinkPlan{Kind: "portal", Name: typed.SinkName()}, nil
+		}
 	}
 
 	id := registry.registerReportingSink(sink)

@@ -224,6 +224,12 @@ func (c loadStrikeContext) WithReportingSinks(reportingSinks ...LoadStrikeReport
 	return c
 }
 
+// WithPortalReporting sends run reports to the LoadStrike customer portal.
+func (c loadStrikeContext) WithPortalReporting() LoadStrikeContext {
+	requireNativeContext(c.nativeValue()).WithPortalReporting()
+	return c
+}
+
 // Registers worker plugins for the run.
 // Use this when custom plugin data should be collected alongside run results.
 func (c loadStrikeContext) WithWorkerPlugins(workerPlugins ...LoadStrikeWorkerPlugin) LoadStrikeContext {
@@ -453,6 +459,12 @@ func (r loadStrikeRunner) WithLicenseValidationTimeout(value TimeSpan) LoadStrik
 // Use this when run results must be pushed to external observability or storage systems.
 func (r loadStrikeRunner) WithReportingSinks(reportingSinks ...LoadStrikeReportingSink) LoadStrikeRunner {
 	requireRunner(r.nativeValue()).WithReportingSinks(reportingSinks...)
+	return r
+}
+
+// WithPortalReporting sends run reports to the LoadStrike customer portal.
+func (r loadStrikeRunner) WithPortalReporting() LoadStrikeRunner {
+	requireRunner(r.nativeValue()).WithPortalReporting()
 	return r
 }
 
