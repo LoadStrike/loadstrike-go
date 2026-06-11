@@ -39,6 +39,11 @@ func (loadStrikeRunner) RegisterScenarios(scenarios ...LoadStrikeScenario) LoadS
 	return RegisterScenarios(scenarios...)
 }
 
+// RegisterTrafficMix mirrors the .NET type-level traffic mix registration helper.
+func (loadStrikeRunner) RegisterTrafficMix(trafficMix LoadStrikeTrafficMixDefinition) LoadStrikeContext {
+	return RegisterTrafficMix(trafficMix)
+}
+
 // Executes the configured workload through the SDK runtime.
 // Use this when configuration is complete and you are ready to start the run.
 func (c loadStrikeContext) Run(args ...string) LoadStrikeRunResult {
@@ -288,6 +293,13 @@ func (r loadStrikeRunner) AddScenarios(scenarios ...LoadStrikeScenario) LoadStri
 	for _, scenario := range scenarios {
 		requireRunner(r.nativeValue()).addScenarioNative(scenario.nativeValue())
 	}
+	return r
+}
+
+// Adds a traffic mix to the current runner.
+// Use this when one total load profile should be split across weighted scenario lanes.
+func (r loadStrikeRunner) AddTrafficMix(trafficMix LoadStrikeTrafficMixDefinition) LoadStrikeRunner {
+	requireRunner(r.nativeValue()).AddTrafficMix(trafficMix)
 	return r
 }
 

@@ -41,6 +41,7 @@ Targeted execution, realtime console metrics, and validation timing are also ava
 - scenario-based load tests with named steps
 - trace-to-test Autopilot starter generation from captured HAR, OpenTelemetry trace JSON, browser recordings, or source and destination message pairs
 - HTTP and event-driven transaction workflows
+- weighted traffic mixes that split one load profile across scenario lanes
 - custom metrics, thresholds, and report generation
 - local report output in HTML, TXT, CSV, and Markdown
 - clustering and distributed execution
@@ -106,6 +107,12 @@ func main() {
 ```
 
 `Run()` returns the full run result, including scenario metrics, generated report files, and sink status information.
+
+## Traffic Mixes
+
+Use `LoadStrikeTrafficMix` on Business and Enterprise plans when one total load profile should be distributed across multiple scenario lanes. For example, a 1000 requests-per-second profile with scenario weights of 60, 30, and 10 sends roughly 600 requests per second to the first scenario, 300 to the second, and 100 to the third.
+
+Each lane is still a normal scenario with its own named steps, thresholds, reports, and portal results. Register the mix with `loadstrike.RegisterTrafficMix(...)` or add it to a runner with `.AddTrafficMix(...)`.
 
 ## Trace-To-Test Autopilot
 

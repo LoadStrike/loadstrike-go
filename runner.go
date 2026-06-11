@@ -9,8 +9,9 @@ var errNoScenarios = errors.New("At least one scenario must be added before buil
 
 // Runner composes scenarios and execution settings before a run.
 type runnerState struct {
-	scenarios []scenarioDefinition
-	context   contextState
+	scenarios    []scenarioDefinition
+	trafficMixes []trafficMixDefinition
+	context      contextState
 }
 
 // newRunnerState creates a new internal runner state with default execution settings.
@@ -57,6 +58,13 @@ func RegisterScenarios(scenarios ...LoadStrikeScenario) LoadStrikeContext {
 	return wrapLoadStrikeContext(runner.BuildContext())
 }
 
+// RegisterTrafficMix creates a runner and registers the provided traffic mix.
+func RegisterTrafficMix(trafficMix LoadStrikeTrafficMixDefinition) LoadStrikeContext {
+	runner := newRunnerState()
+	runner.AddTrafficMix(trafficMix)
+	return wrapLoadStrikeContext(runner.BuildContext())
+}
+
 // AddScenario registers one scenario on the runner.
 func (r *runnerState) AddScenario(scenario scenarioLike) *runnerState {
 	nativeScenario := normalizeScenarioLike(scenario)
@@ -75,6 +83,19 @@ func (r *runnerState) AddScenarios(scenarios ...scenarioLike) *runnerState {
 		validateScenarioValue(nativeScenario)
 		r.scenarios = append(r.scenarios, nativeScenario)
 	}
+	return r
+}
+
+// AddTrafficMix registers one traffic mix on the runner.
+func (r *runnerState) AddTrafficMix(trafficMix LoadStrikeTrafficMixDefinition) *runnerState {
+	native := trafficMix.nativeValue()
+	if len(native.TotalLoad) == 0 {
+		panic("Traffic mix total load must be configured before registration.")
+	}
+	if len(native.ScenarioMix) == 0 {
+		panic("Traffic mix scenario shares must be configured before registration.")
+	}
+	r.trafficMixes = append(r.trafficMixes, native)
 	return r
 }
 
@@ -301,12 +322,13 @@ func (r *runnerState) WithRestartIterationMaxAttempts(attempts int) *runnerState
 
 // BuildContext returns the configured reusable execution context.
 func (r *runnerState) BuildContext() *contextState {
-	if len(r.scenarios) == 0 {
+	if len(r.scenarios) == 0 && len(r.trafficMixes) == 0 {
 		panic(errNoScenarios.Error())
 	}
 
 	context := r.context
 	context.scenarios = append([]scenarioDefinition(nil), r.scenarios...)
+	context.trafficMixes = append([]trafficMixDefinition(nil), r.trafficMixes...)
 	return &context
 }
 

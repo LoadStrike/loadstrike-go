@@ -16,7 +16,6 @@ type runtimeConfigSection struct {
 	TestSuite                   string `json:"TestSuite"`
 	TestName                    string `json:"TestName"`
 	RestartIterationMaxAttempts *int   `json:"RestartIterationMaxAttempts"`
-	DisableLicenseEnforcement   *bool  `json:"DisableLicenseEnforcement"`
 }
 
 // LoadConfig applies supported settings from a loadstrike JSON config file.
@@ -51,11 +50,29 @@ func loadRuntimeConfig(path string) (runtimeConfigFile, error) {
 	if err := json.Unmarshal(body, &config); err != nil {
 		return runtimeConfigFile{}, err
 	}
-	if config.LoadStrike.DisableLicenseEnforcement != nil {
+	if configContainsKey(body, "LoadStrike", "DisableLicenseEnforcement") {
 		return runtimeConfigFile{}, errors.New("disable license enforcement has been removed and is no longer supported")
 	}
 
 	return config, nil
+}
+
+func configContainsKey(body []byte, sectionName string, keyName string) bool {
+	raw := map[string]map[string]json.RawMessage{}
+	if err := json.Unmarshal(body, &raw); err != nil {
+		return false
+	}
+	for section, values := range raw {
+		if !strings.EqualFold(section, sectionName) {
+			continue
+		}
+		for key := range values {
+			if strings.EqualFold(key, keyName) {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 func applyRuntimeConfig(context *contextState, config runtimeConfigFile) {

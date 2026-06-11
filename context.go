@@ -43,6 +43,7 @@ type contextState struct {
 	Logger                           *LoadStrikeLogger
 	reportConfigured                 bool
 	scenarios                        []scenarioDefinition
+	trafficMixes                     []trafficMixDefinition
 	configError                      error
 	agentIndex                       int
 	agentCount                       int
@@ -401,7 +402,7 @@ func (c *contextState) Run(args ...string) (runResult, error) {
 	if c == nil {
 		return runResult{}, fmt.Errorf("context must be provided")
 	}
-	if len(c.scenarios) == 0 {
+	if len(c.scenarios) == 0 && len(c.trafficMixes) == 0 {
 		return runResult{}, errNoScenarios
 	}
 	if err := applyRunArgs(c, args); err != nil {

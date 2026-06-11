@@ -8,10 +8,11 @@ import (
 )
 
 type runtimePlan struct {
-	SDKVersion      string                `json:"sdkVersion"`
-	ProtocolVersion int                   `json:"protocolVersion"`
-	Context         runtimeContextPlan    `json:"context"`
-	Scenarios       []runtimeScenarioPlan `json:"scenarios"`
+	SDKVersion      string                  `json:"sdkVersion"`
+	ProtocolVersion int                     `json:"protocolVersion"`
+	Context         runtimeContextPlan      `json:"context"`
+	Scenarios       []runtimeScenarioPlan   `json:"scenarios"`
+	TrafficMixes    []runtimeTrafficMixPlan `json:"trafficMixes,omitempty"`
 }
 
 type runtimeContextPlan struct {
@@ -86,6 +87,17 @@ type runtimeScenarioPlan struct {
 	AutopilotHTTP          *LoadStrikeAutopilotHTTPReplay `json:"autopilotHttp,omitempty"`
 }
 
+type runtimeTrafficMixPlan struct {
+	Name        string                               `json:"name"`
+	TotalLoad   []LoadSimulation                     `json:"totalLoad"`
+	ScenarioMix []runtimeTrafficMixScenarioSharePlan `json:"scenarioMix"`
+}
+
+type runtimeTrafficMixScenarioSharePlan struct {
+	Weight   int                 `json:"weight"`
+	Scenario runtimeScenarioPlan `json:"scenario"`
+}
+
 func newRuntimeContextPlan(context contextState) runtimeContextPlan {
 	return runtimeContextPlan{
 		ReportsEnabled:                   context.ReportsEnabled,
@@ -138,6 +150,7 @@ func buildRuntimePlan(
 		ProtocolVersion: RuntimeProtocolVersion(),
 		Context:         newRuntimeContextPlan(*context),
 		Scenarios:       make([]runtimeScenarioPlan, 0, len(context.scenarios)),
+		TrafficMixes:    make([]runtimeTrafficMixPlan, 0, len(context.trafficMixes)),
 	}
 
 	contextPlan, err := buildRuntimeContextExtensions(*context, registry, httpHost)
@@ -149,35 +162,59 @@ func buildRuntimePlan(
 	plan.Context.RuntimePolicies = contextPlan.RuntimePolicies
 
 	for _, scenario := range context.scenarios {
-		item := runtimeScenarioPlan{
-			Name:                   scenario.Name,
-			Weight:                 scenario.Weight,
-			RestartIterationOnFail: scenario.RestartIterationOnFail,
-			MaxFailCount:           scenario.MaxFailCount,
-			WarmUpDurationSeconds:  scenario.WarmUpDurationSeconds,
-			WarmUpDisabled:         scenario.WarmUpDisabled,
-			LoadSimulations:        append([]LoadSimulation(nil), scenario.LoadSimulations...),
-			Thresholds:             append([]ThresholdSpec(nil), scenario.Thresholds...),
-			AutopilotHTTP:          cloneAutopilotHTTPReplay(scenario.AutopilotHTTP),
-		}
-		if scenario.AutopilotHTTP == nil {
-			scenarioID := registry.registerScenario(scenario)
-			item.StepCallbackURL = httpHost.scenarioCallbackURL(scenarioID, "step")
-			item.MetricsCallbackURL = httpHost.scenarioCallbackURL(scenarioID, "metrics")
-			if scenario.Init != nil {
-				item.InitCallbackURL = httpHost.scenarioCallbackURL(scenarioID, "init")
-			}
-			if scenario.Clean != nil {
-				item.CleanCallbackURL = httpHost.scenarioCallbackURL(scenarioID, "clean")
-			}
-		}
-		if scenario.Tracking != nil {
-			item.Tracking = cloneTrackingConfigurationWithCallbackURLs(scenario.Tracking, registry, httpHost)
-		}
+		item := buildRuntimeScenarioPlan(scenario, registry, httpHost)
 		plan.Scenarios = append(plan.Scenarios, item)
 	}
 
+	for _, trafficMix := range context.trafficMixes {
+		item := runtimeTrafficMixPlan{
+			Name:        trafficMix.Name,
+			TotalLoad:   append([]LoadSimulation(nil), trafficMix.TotalLoad...),
+			ScenarioMix: make([]runtimeTrafficMixScenarioSharePlan, 0, len(trafficMix.ScenarioMix)),
+		}
+		for _, share := range trafficMix.ScenarioMix {
+			item.ScenarioMix = append(item.ScenarioMix, runtimeTrafficMixScenarioSharePlan{
+				Weight:   share.Weight,
+				Scenario: buildRuntimeScenarioPlan(share.Scenario, registry, httpHost),
+			})
+		}
+		plan.TrafficMixes = append(plan.TrafficMixes, item)
+	}
+
 	return plan, nil
+}
+
+func buildRuntimeScenarioPlan(
+	scenario scenarioDefinition,
+	registry *runtimeCallbackRegistry,
+	httpHost *runtimeHTTPHostHandle,
+) runtimeScenarioPlan {
+	item := runtimeScenarioPlan{
+		Name:                   scenario.Name,
+		Weight:                 scenario.Weight,
+		RestartIterationOnFail: scenario.RestartIterationOnFail,
+		MaxFailCount:           scenario.MaxFailCount,
+		WarmUpDurationSeconds:  scenario.WarmUpDurationSeconds,
+		WarmUpDisabled:         scenario.WarmUpDisabled,
+		LoadSimulations:        append([]LoadSimulation(nil), scenario.LoadSimulations...),
+		Thresholds:             append([]ThresholdSpec(nil), scenario.Thresholds...),
+		AutopilotHTTP:          cloneAutopilotHTTPReplay(scenario.AutopilotHTTP),
+	}
+	if scenario.AutopilotHTTP == nil {
+		scenarioID := registry.registerScenario(scenario)
+		item.StepCallbackURL = httpHost.scenarioCallbackURL(scenarioID, "step")
+		item.MetricsCallbackURL = httpHost.scenarioCallbackURL(scenarioID, "metrics")
+		if scenario.Init != nil {
+			item.InitCallbackURL = httpHost.scenarioCallbackURL(scenarioID, "init")
+		}
+		if scenario.Clean != nil {
+			item.CleanCallbackURL = httpHost.scenarioCallbackURL(scenarioID, "clean")
+		}
+	}
+	if scenario.Tracking != nil {
+		item.Tracking = cloneTrackingConfigurationWithCallbackURLs(scenario.Tracking, registry, httpHost)
+	}
+	return item
 }
 
 type runtimeContextExtensionPlan struct {
