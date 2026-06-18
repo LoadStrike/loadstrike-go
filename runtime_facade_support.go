@@ -14,7 +14,6 @@ import (
 const defaultLicenseValidationTimeoutSeconds = 10.0
 const defaultLicenseValidationBaseURL = "https://licensing.loadstrike.com"
 const testLicenseValidationBaseURL = "http://127.0.0.1:1"
-const licenseValidationBaseURLEnv = "LOADSTRIKE_INTERNAL_BLACKBOX_API_BASE_URL"
 
 // ReportFormat identifies a report file type.
 type ReportFormat string
@@ -348,11 +347,6 @@ func currentMachineName() string {
 
 func resolveLicensingAPIBaseURL() string {
 	if isGoTestBinary() {
-		if value := strings.TrimRight(strings.TrimSpace(os.Getenv(licenseValidationBaseURLEnv)), "/"); value != "" {
-			if isLoopbackHTTPBaseURL(value) {
-				return value
-			}
-		}
 		return testLicenseValidationBaseURL
 	}
 	return defaultLicenseValidationBaseURL
