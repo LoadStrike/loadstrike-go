@@ -32,19 +32,20 @@ type scenarioPartitionInfo struct {
 
 // scenarioDefinition defines a runnable workload scenario.
 type scenarioDefinition struct {
-	Name                   string
-	Init                   func(*scenarioHookContext) error
-	Clean                  func(*scenarioHookContext) error
-	Weight                 int
-	RestartIterationOnFail bool
-	MaxFailCount           int
-	WarmUpDurationSeconds  float64
-	WarmUpDisabled         bool
-	LoadSimulations        []LoadSimulation
-	Thresholds             []ThresholdSpec
-	Tracking               *TrackingConfigurationSpec
-	Steps                  []scenarioStep
-	AutopilotHTTP          *LoadStrikeAutopilotHTTPReplay
+	Name                    string
+	Init                    func(*scenarioHookContext) error
+	Clean                   func(*scenarioHookContext) error
+	Weight                  int
+	RestartIterationOnFail  bool
+	MaxFailCount            int
+	WarmUpDurationSeconds   float64
+	WarmUpDisabled          bool
+	LoadSimulations         []LoadSimulation
+	Thresholds              []ThresholdSpec
+	Tracking                *TrackingConfigurationSpec
+	Steps                   []scenarioStep
+	AutopilotHTTP           *LoadStrikeAutopilotHTTPReplay
+	InternalLicenseFeatures []string
 }
 
 type scenarioLike interface {
@@ -185,6 +186,26 @@ func (s scenarioDefinition) WithTrackingConfiguration(tracking *TrackingConfigur
 // WithCrossPlatformTracking is a convenience alias for WithTrackingConfiguration.
 func (s scenarioDefinition) WithCrossPlatformTracking(tracking *TrackingConfigurationSpec) scenarioDefinition {
 	return s.WithTrackingConfiguration(tracking)
+}
+
+func (s scenarioDefinition) withInternalLicenseFeatures(features ...string) scenarioDefinition {
+	for _, feature := range features {
+		normalized := strings.ToLower(strings.TrimSpace(feature))
+		if normalized == "" {
+			continue
+		}
+		alreadyAdded := false
+		for _, existing := range s.InternalLicenseFeatures {
+			if strings.EqualFold(strings.TrimSpace(existing), normalized) {
+				alreadyAdded = true
+				break
+			}
+		}
+		if !alreadyAdded {
+			s.InternalLicenseFeatures = append(s.InternalLicenseFeatures, normalized)
+		}
+	}
+	return s
 }
 
 // WithSteps replaces the configured scenario steps.

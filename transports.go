@@ -78,6 +78,8 @@ type EndpointSpec struct {
 	SQS                               *SQSEndpointOptions            `json:"Sqs,omitempty"`
 	DelegateStream                    *DelegateEndpointOptions       `json:"DelegateStream,omitempty"`
 	PushDiffusion                     *PushDiffusionEndpointOptions  `json:"PushDiffusion,omitempty"`
+	Grpc                              *GrpcEndpointOptions           `json:"Grpc,omitempty"`
+	WebSocket                         *WebSocketEndpointOptions      `json:"WebSocket,omitempty"`
 }
 
 // HTTPEndpointOptions defines HTTP endpoint behavior.
@@ -241,6 +243,34 @@ type PushDiffusionEndpointOptions struct {
 	SubscribeCallbackURL string                                                                   `json:"SubscribeCallbackUrl,omitempty"`
 	Publish              func(stdcontext.Context, TrackingPayload) (EndpointProduceResult, error) `json:"-"`
 	Subscribe            func(stdcontext.Context, func(EndpointConsumeEvent) error) error         `json:"-"`
+}
+
+// GrpcEndpointOptions defines delegate-backed gRPC endpoint options.
+type GrpcEndpointOptions struct {
+	Target             string                                                                   `json:"Target,omitempty"`
+	ServiceName        string                                                                   `json:"ServiceName,omitempty"`
+	MethodName         string                                                                   `json:"MethodName,omitempty"`
+	MethodType         string                                                                   `json:"MethodType,omitempty"`
+	DeadlineSeconds    float64                                                                  `json:"DeadlineSeconds,omitempty"`
+	Metadata           map[string]string                                                        `json:"Metadata,omitempty"`
+	ConnectionMetadata map[string]string                                                        `json:"ConnectionMetadata,omitempty"`
+	ProduceCallbackURL string                                                                   `json:"ProduceCallbackUrl,omitempty"`
+	ConsumeCallbackURL string                                                                   `json:"ConsumeCallbackUrl,omitempty"`
+	Produce            func(stdcontext.Context, TrackingPayload) (EndpointProduceResult, error) `json:"-"`
+	Consume            func(stdcontext.Context, func(EndpointConsumeEvent) error) error         `json:"-"`
+}
+
+// WebSocketEndpointOptions defines delegate-backed WebSocket endpoint options.
+type WebSocketEndpointOptions struct {
+	URL                   string                                                                   `json:"Url,omitempty"`
+	Subprotocols          []string                                                                 `json:"Subprotocols,omitempty"`
+	ConnectTimeoutSeconds float64                                                                  `json:"ConnectTimeoutSeconds,omitempty"`
+	CloseTimeoutSeconds   float64                                                                  `json:"CloseTimeoutSeconds,omitempty"`
+	ConnectionMetadata    map[string]string                                                        `json:"ConnectionMetadata,omitempty"`
+	ProduceCallbackURL    string                                                                   `json:"ProduceCallbackUrl,omitempty"`
+	ConsumeCallbackURL    string                                                                   `json:"ConsumeCallbackUrl,omitempty"`
+	Produce               func(stdcontext.Context, TrackingPayload) (EndpointProduceResult, error) `json:"-"`
+	Consume               func(stdcontext.Context, func(EndpointConsumeEvent) error) error         `json:"-"`
 }
 
 // RawPayloadFromAny marshals an arbitrary payload into raw JSON.

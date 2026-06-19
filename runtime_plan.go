@@ -71,20 +71,21 @@ type runtimePolicyPlan struct {
 }
 
 type runtimeScenarioPlan struct {
-	Name                   string                         `json:"name"`
-	StepCallbackURL        string                         `json:"stepCallbackUrl,omitempty"`
-	InitCallbackURL        string                         `json:"initCallbackUrl,omitempty"`
-	CleanCallbackURL       string                         `json:"cleanCallbackUrl,omitempty"`
-	MetricsCallbackURL     string                         `json:"metricsCallbackUrl,omitempty"`
-	Weight                 int                            `json:"weight,omitempty"`
-	RestartIterationOnFail bool                           `json:"restartIterationOnFail,omitempty"`
-	MaxFailCount           int                            `json:"maxFailCount,omitempty"`
-	WarmUpDurationSeconds  float64                        `json:"warmUpDurationSeconds,omitempty"`
-	WarmUpDisabled         bool                           `json:"warmUpDisabled,omitempty"`
-	LoadSimulations        []LoadSimulation               `json:"loadSimulations,omitempty"`
-	Thresholds             []ThresholdSpec                `json:"thresholds,omitempty"`
-	Tracking               *TrackingConfigurationSpec     `json:"tracking,omitempty"`
-	AutopilotHTTP          *LoadStrikeAutopilotHTTPReplay `json:"autopilotHttp,omitempty"`
+	Name                    string                         `json:"name"`
+	StepCallbackURL         string                         `json:"stepCallbackUrl,omitempty"`
+	InitCallbackURL         string                         `json:"initCallbackUrl,omitempty"`
+	CleanCallbackURL        string                         `json:"cleanCallbackUrl,omitempty"`
+	MetricsCallbackURL      string                         `json:"metricsCallbackUrl,omitempty"`
+	Weight                  int                            `json:"weight,omitempty"`
+	RestartIterationOnFail  bool                           `json:"restartIterationOnFail,omitempty"`
+	MaxFailCount            int                            `json:"maxFailCount,omitempty"`
+	WarmUpDurationSeconds   float64                        `json:"warmUpDurationSeconds,omitempty"`
+	WarmUpDisabled          bool                           `json:"warmUpDisabled,omitempty"`
+	LoadSimulations         []LoadSimulation               `json:"loadSimulations,omitempty"`
+	Thresholds              []ThresholdSpec                `json:"thresholds,omitempty"`
+	Tracking                *TrackingConfigurationSpec     `json:"tracking,omitempty"`
+	AutopilotHTTP           *LoadStrikeAutopilotHTTPReplay `json:"autopilotHttp,omitempty"`
+	InternalLicenseFeatures []string                       `json:"internalLicenseFeatures,omitempty"`
 }
 
 type runtimeTrafficMixPlan struct {
@@ -190,15 +191,16 @@ func buildRuntimeScenarioPlan(
 	httpHost *runtimeHTTPHostHandle,
 ) runtimeScenarioPlan {
 	item := runtimeScenarioPlan{
-		Name:                   scenario.Name,
-		Weight:                 scenario.Weight,
-		RestartIterationOnFail: scenario.RestartIterationOnFail,
-		MaxFailCount:           scenario.MaxFailCount,
-		WarmUpDurationSeconds:  scenario.WarmUpDurationSeconds,
-		WarmUpDisabled:         scenario.WarmUpDisabled,
-		LoadSimulations:        append([]LoadSimulation(nil), scenario.LoadSimulations...),
-		Thresholds:             append([]ThresholdSpec(nil), scenario.Thresholds...),
-		AutopilotHTTP:          cloneAutopilotHTTPReplay(scenario.AutopilotHTTP),
+		Name:                    scenario.Name,
+		Weight:                  scenario.Weight,
+		RestartIterationOnFail:  scenario.RestartIterationOnFail,
+		MaxFailCount:            scenario.MaxFailCount,
+		WarmUpDurationSeconds:   scenario.WarmUpDurationSeconds,
+		WarmUpDisabled:          scenario.WarmUpDisabled,
+		LoadSimulations:         append([]LoadSimulation(nil), scenario.LoadSimulations...),
+		Thresholds:              append([]ThresholdSpec(nil), scenario.Thresholds...),
+		AutopilotHTTP:           cloneAutopilotHTTPReplay(scenario.AutopilotHTTP),
+		InternalLicenseFeatures: append([]string(nil), scenario.InternalLicenseFeatures...),
 	}
 	if scenario.AutopilotHTTP == nil {
 		scenarioID := registry.registerScenario(scenario)
@@ -389,6 +391,28 @@ func cloneEndpointSpecWithCallbackURLs(
 		if source.PushDiffusion.Subscribe != nil {
 			id := registry.registerTrackingConsume(source.PushDiffusion.Subscribe)
 			cloned.PushDiffusion.SubscribeCallbackURL = httpHost.trackingConsumeCallbackURL(id)
+		}
+	}
+
+	if source.Grpc != nil && cloned.Grpc != nil {
+		if source.Grpc.Produce != nil {
+			id := registry.registerTrackingProduce(source.Grpc.Produce)
+			cloned.Grpc.ProduceCallbackURL = httpHost.trackingProduceCallbackURL(id)
+		}
+		if source.Grpc.Consume != nil {
+			id := registry.registerTrackingConsume(source.Grpc.Consume)
+			cloned.Grpc.ConsumeCallbackURL = httpHost.trackingConsumeCallbackURL(id)
+		}
+	}
+
+	if source.WebSocket != nil && cloned.WebSocket != nil {
+		if source.WebSocket.Produce != nil {
+			id := registry.registerTrackingProduce(source.WebSocket.Produce)
+			cloned.WebSocket.ProduceCallbackURL = httpHost.trackingProduceCallbackURL(id)
+		}
+		if source.WebSocket.Consume != nil {
+			id := registry.registerTrackingConsume(source.WebSocket.Consume)
+			cloned.WebSocket.ConsumeCallbackURL = httpHost.trackingConsumeCallbackURL(id)
 		}
 	}
 
