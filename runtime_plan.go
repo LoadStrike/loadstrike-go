@@ -49,15 +49,18 @@ type runtimeContextPlan struct {
 }
 
 type runtimeReportingSinkPlan struct {
-	Kind          string                    `json:"kind"`
-	Name          string                    `json:"name,omitempty"`
-	CallbackURL   string                    `json:"callbackUrl,omitempty"`
-	InfluxDB      *InfluxDBSinkOptions      `json:"influxDb,omitempty"`
-	TimescaleDB   *TimescaleDBSinkOptions   `json:"timescaleDb,omitempty"`
-	GrafanaLoki   *GrafanaLokiSinkOptions   `json:"grafanaLoki,omitempty"`
-	Datadog       *DatadogSinkOptions       `json:"datadog,omitempty"`
-	Splunk        *SplunkSinkOptions        `json:"splunk,omitempty"`
-	OTELCollector *OTELCollectorSinkOptions `json:"otelCollector,omitempty"`
+	Kind          string                         `json:"kind"`
+	Name          string                         `json:"name,omitempty"`
+	CallbackURL   string                         `json:"callbackUrl,omitempty"`
+	InfluxDB      *InfluxDBSinkOptions           `json:"influxDb,omitempty"`
+	TimescaleDB   *TimescaleDBSinkOptions        `json:"timescaleDb,omitempty"`
+	GrafanaLoki   *GrafanaLokiSinkOptions        `json:"grafanaLoki,omitempty"`
+	Datadog       *DatadogSinkOptions            `json:"datadog,omitempty"`
+	Splunk        *SplunkSinkOptions             `json:"splunk,omitempty"`
+	OTELCollector *OTELCollectorSinkOptions      `json:"otelCollector,omitempty"`
+	HTTP          *HTTPReportingSinkOptions      `json:"http,omitempty"`
+	Kafka         *KafkaReportingSinkOptions     `json:"kafka,omitempty"`
+	JsonlFile     *JsonlFileReportingSinkOptions `json:"jsonlFile,omitempty"`
 }
 
 type runtimeWorkerPluginPlan struct {
@@ -327,6 +330,102 @@ func buildRuntimeReportingSinkPlan(
 	case *PortalReportingSink:
 		if typed != nil {
 			return runtimeReportingSinkPlan{Kind: "portal", Name: typed.SinkName()}, nil
+		}
+	case PrometheusRemoteWriteReportingSink:
+		options := typed.Options
+		return runtimeReportingSinkPlan{Kind: "prometheusremotewrite", Name: typed.SinkName(), HTTP: &options}, nil
+	case *PrometheusRemoteWriteReportingSink:
+		if typed != nil {
+			options := typed.Options
+			return runtimeReportingSinkPlan{Kind: "prometheusremotewrite", Name: typed.SinkName(), HTTP: &options}, nil
+		}
+	case CloudWatchReportingSink:
+		options := typed.Options
+		return runtimeReportingSinkPlan{Kind: "cloudwatch", Name: typed.SinkName(), HTTP: &options}, nil
+	case *CloudWatchReportingSink:
+		if typed != nil {
+			options := typed.Options
+			return runtimeReportingSinkPlan{Kind: "cloudwatch", Name: typed.SinkName(), HTTP: &options}, nil
+		}
+	case DynatraceReportingSink:
+		options := typed.Options
+		return runtimeReportingSinkPlan{Kind: "dynatrace", Name: typed.SinkName(), HTTP: &options}, nil
+	case *DynatraceReportingSink:
+		if typed != nil {
+			options := typed.Options
+			return runtimeReportingSinkPlan{Kind: "dynatrace", Name: typed.SinkName(), HTTP: &options}, nil
+		}
+	case ElasticsearchReportingSink:
+		options := typed.Options
+		return runtimeReportingSinkPlan{Kind: "elasticsearch", Name: typed.SinkName(), HTTP: &options}, nil
+	case *ElasticsearchReportingSink:
+		if typed != nil {
+			options := typed.Options
+			return runtimeReportingSinkPlan{Kind: "elasticsearch", Name: typed.SinkName(), HTTP: &options}, nil
+		}
+	case OpenSearchReportingSink:
+		options := typed.Options
+		return runtimeReportingSinkPlan{Kind: "opensearch", Name: typed.SinkName(), HTTP: &options}, nil
+	case *OpenSearchReportingSink:
+		if typed != nil {
+			options := typed.Options
+			return runtimeReportingSinkPlan{Kind: "opensearch", Name: typed.SinkName(), HTTP: &options}, nil
+		}
+	case KafkaReportingSink:
+		options := typed.Options
+		return runtimeReportingSinkPlan{Kind: "kafka", Name: typed.SinkName(), Kafka: &options}, nil
+	case *KafkaReportingSink:
+		if typed != nil {
+			options := typed.Options
+			return runtimeReportingSinkPlan{Kind: "kafka", Name: typed.SinkName(), Kafka: &options}, nil
+		}
+	case StatsDReportingSink:
+		options := typed.Options
+		return runtimeReportingSinkPlan{Kind: "statsd", Name: typed.SinkName(), HTTP: &options}, nil
+	case *StatsDReportingSink:
+		if typed != nil {
+			options := typed.Options
+			return runtimeReportingSinkPlan{Kind: "statsd", Name: typed.SinkName(), HTTP: &options}, nil
+		}
+	case DogStatsDReportingSink:
+		options := typed.Options
+		return runtimeReportingSinkPlan{Kind: "dogstatsd", Name: typed.SinkName(), HTTP: &options}, nil
+	case *DogStatsDReportingSink:
+		if typed != nil {
+			options := typed.Options
+			return runtimeReportingSinkPlan{Kind: "dogstatsd", Name: typed.SinkName(), HTTP: &options}, nil
+		}
+	case NewRelicReportingSink:
+		options := typed.Options
+		return runtimeReportingSinkPlan{Kind: "newrelic", Name: typed.SinkName(), HTTP: &options}, nil
+	case *NewRelicReportingSink:
+		if typed != nil {
+			options := typed.Options
+			return runtimeReportingSinkPlan{Kind: "newrelic", Name: typed.SinkName(), HTTP: &options}, nil
+		}
+	case NetdataStatsDReportingSink:
+		options := typed.Options
+		return runtimeReportingSinkPlan{Kind: "netdatastatsd", Name: typed.SinkName(), HTTP: &options}, nil
+	case *NetdataStatsDReportingSink:
+		if typed != nil {
+			options := typed.Options
+			return runtimeReportingSinkPlan{Kind: "netdatastatsd", Name: typed.SinkName(), HTTP: &options}, nil
+		}
+	case JsonlFileReportingSink:
+		options := typed.Options
+		return runtimeReportingSinkPlan{Kind: "jsonl", Name: typed.SinkName(), JsonlFile: &options}, nil
+	case *JsonlFileReportingSink:
+		if typed != nil {
+			options := typed.Options
+			return runtimeReportingSinkPlan{Kind: "jsonl", Name: typed.SinkName(), JsonlFile: &options}, nil
+		}
+	case GenericWebhookReportingSink:
+		options := typed.Options
+		return runtimeReportingSinkPlan{Kind: "webhook", Name: typed.SinkName(), HTTP: &options}, nil
+	case *GenericWebhookReportingSink:
+		if typed != nil {
+			options := typed.Options
+			return runtimeReportingSinkPlan{Kind: "webhook", Name: typed.SinkName(), HTTP: &options}, nil
 		}
 	}
 

@@ -45,7 +45,7 @@ Targeted execution, realtime console metrics, and validation timing are also ava
 - custom metrics, thresholds, and report generation
 - local report output in HTML, TXT, CSV, and Markdown
 - clustering and distributed execution
-- supported observability sink integrations on Business and Enterprise
+- supported observability sink integrations on Enterprise
 
 Built-in transport coverage includes HTTP, Kafka, RabbitMQ, NATS, Redis Streams, Azure Event Hubs, Push Diffusion, and delegate-based custom streams.
 
@@ -110,7 +110,7 @@ func main() {
 
 ## Traffic Mixes
 
-Use `LoadStrikeTrafficMix` on Business and Enterprise plans when one total load profile should be distributed across multiple scenario lanes. For example, a 1000 requests-per-second profile with scenario weights of 60, 30, and 10 sends roughly 600 requests per second to the first scenario, 300 to the second, and 100 to the third.
+Use `LoadStrikeTrafficMix` on Pro and Enterprise plans when one total load profile should be distributed across multiple scenario lanes. For example, a 1000 requests-per-second profile with scenario weights of 60, 30, and 10 sends roughly 600 requests per second to the first scenario, 300 to the second, and 100 to the third.
 
 Each lane is still a normal scenario with its own named steps, thresholds, reports, and portal results. Register the mix with `loadstrike.RegisterTrafficMix(...)` or add it to a runner with `.AddTrafficMix(...)`.
 

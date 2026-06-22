@@ -254,10 +254,60 @@ type GrpcEndpointOptions struct {
 	DeadlineSeconds    float64                                                                  `json:"DeadlineSeconds,omitempty"`
 	Metadata           map[string]string                                                        `json:"Metadata,omitempty"`
 	ConnectionMetadata map[string]string                                                        `json:"ConnectionMetadata,omitempty"`
+	NativeClient       *GrpcNativeClientOptions                                                 `json:"NativeClient,omitempty"`
 	ProduceCallbackURL string                                                                   `json:"ProduceCallbackUrl,omitempty"`
 	ConsumeCallbackURL string                                                                   `json:"ConsumeCallbackUrl,omitempty"`
 	Produce            func(stdcontext.Context, TrackingPayload) (EndpointProduceResult, error) `json:"-"`
 	Consume            func(stdcontext.Context, func(EndpointConsumeEvent) error) error         `json:"-"`
+}
+
+type GrpcNativeClientOptions struct {
+	ProtoFilePath                string            `json:"ProtoFilePath,omitempty"`
+	DescriptorSetPath            string            `json:"DescriptorSetPath,omitempty"`
+	UseReflection                bool              `json:"UseReflection,omitempty"`
+	UseTLS                       bool              `json:"UseTls,omitempty"`
+	AllowUntrustedCertificates   bool              `json:"AllowUntrustedCertificates,omitempty"`
+	DeadlineSeconds              float64           `json:"DeadlineSeconds,omitempty"`
+	Metadata                     map[string]string `json:"Metadata,omitempty"`
+	RequestPayloadJSON           string            `json:"RequestPayloadJson,omitempty"`
+	RequestPayloadJSONStream     []string          `json:"RequestPayloadJsonStream,omitempty"`
+	TrackStatusCodes             bool              `json:"TrackStatusCodes,omitempty"`
+	TrackStreamingMessageLatency bool              `json:"TrackStreamingMessageLatency,omitempty"`
+}
+
+type GrpcStatusMapping struct {
+	StatusCode int    `json:"StatusCode"`
+	StatusName string `json:"StatusName"`
+	IsSuccess  bool   `json:"IsSuccess"`
+}
+
+func MapGrpcStatusCode(statusCode int) GrpcStatusMapping {
+	names := map[int]string{
+		0: "OK", 1: "CANCELLED", 2: "UNKNOWN", 3: "INVALID_ARGUMENT",
+		4: "DEADLINE_EXCEEDED", 5: "NOT_FOUND", 6: "ALREADY_EXISTS",
+		7: "PERMISSION_DENIED", 8: "RESOURCE_EXHAUSTED", 9: "FAILED_PRECONDITION",
+		10: "ABORTED", 11: "OUT_OF_RANGE", 12: "UNIMPLEMENTED", 13: "INTERNAL",
+		14: "UNAVAILABLE", 15: "DATA_LOSS", 16: "UNAUTHENTICATED",
+	}
+	name := names[statusCode]
+	if name == "" {
+		name = "UNKNOWN"
+	}
+	return GrpcStatusMapping{StatusCode: statusCode, StatusName: name, IsSuccess: statusCode == 0}
+}
+
+type ProtocolMetricSnapshot struct {
+	Protocol         string  `json:"Protocol,omitempty"`
+	Requests         int     `json:"Requests,omitempty"`
+	MessagesSent     int     `json:"MessagesSent,omitempty"`
+	MessagesReceived int     `json:"MessagesReceived,omitempty"`
+	LatencyMS        float64 `json:"LatencyMs,omitempty"`
+	StreamDurationMS float64 `json:"StreamDurationMs,omitempty"`
+	BytesSent        int64   `json:"BytesSent,omitempty"`
+	BytesReceived    int64   `json:"BytesReceived,omitempty"`
+	Reconnects       int     `json:"Reconnects,omitempty"`
+	Errors           int     `json:"Errors,omitempty"`
+	Status           string  `json:"Status,omitempty"`
 }
 
 // WebSocketEndpointOptions defines delegate-backed WebSocket endpoint options.
@@ -267,10 +317,50 @@ type WebSocketEndpointOptions struct {
 	ConnectTimeoutSeconds float64                                                                  `json:"ConnectTimeoutSeconds,omitempty"`
 	CloseTimeoutSeconds   float64                                                                  `json:"CloseTimeoutSeconds,omitempty"`
 	ConnectionMetadata    map[string]string                                                        `json:"ConnectionMetadata,omitempty"`
+	NativeClient          *WebSocketNativeClientOptions                                            `json:"NativeClient,omitempty"`
 	ProduceCallbackURL    string                                                                   `json:"ProduceCallbackUrl,omitempty"`
 	ConsumeCallbackURL    string                                                                   `json:"ConsumeCallbackUrl,omitempty"`
 	Produce               func(stdcontext.Context, TrackingPayload) (EndpointProduceResult, error) `json:"-"`
 	Consume               func(stdcontext.Context, func(EndpointConsumeEvent) error) error         `json:"-"`
+}
+
+type WebSocketNativeClientOptions struct {
+	Headers               map[string]string          `json:"Headers,omitempty"`
+	Messages              []WebSocketMessageSpec     `json:"Messages,omitempty"`
+	ExpectedMessages      []WebSocketExpectedMessage `json:"ExpectedMessages,omitempty"`
+	ReconnectPolicy       *WebSocketReconnectPolicy  `json:"ReconnectPolicy,omitempty"`
+	BinaryMessages        bool                       `json:"BinaryMessages,omitempty"`
+	TrackPingPong         bool                       `json:"TrackPingPong,omitempty"`
+	TrackCloseCodes       bool                       `json:"TrackCloseCodes,omitempty"`
+	TrackMessageLatency   bool                       `json:"TrackMessageLatency,omitempty"`
+	ReceiveTimeoutSeconds float64                    `json:"ReceiveTimeoutSeconds,omitempty"`
+}
+
+type WebSocketReconnectPolicy struct {
+	Enabled        bool    `json:"Enabled,omitempty"`
+	MaxAttempts    int     `json:"MaxAttempts,omitempty"`
+	BackoffSeconds float64 `json:"BackoffSeconds,omitempty"`
+}
+
+type WebSocketMessageSpec struct {
+	Type          string  `json:"Type,omitempty"`
+	Payload       string  `json:"Payload,omitempty"`
+	BinaryPayload []byte  `json:"BinaryPayload,omitempty"`
+	DelaySeconds  float64 `json:"DelaySeconds,omitempty"`
+}
+
+func TextWebSocketMessage(payload string) WebSocketMessageSpec {
+	return WebSocketMessageSpec{Type: "Text", Payload: payload}
+}
+
+func BinaryWebSocketMessage(payload []byte) WebSocketMessageSpec {
+	return WebSocketMessageSpec{Type: "Binary", BinaryPayload: append([]byte(nil), payload...)}
+}
+
+type WebSocketExpectedMessage struct {
+	MatchText      string  `json:"MatchText,omitempty"`
+	MatchJSONPath  string  `json:"MatchJsonPath,omitempty"`
+	TimeoutSeconds float64 `json:"TimeoutSeconds,omitempty"`
 }
 
 // RawPayloadFromAny marshals an arbitrary payload into raw JSON.

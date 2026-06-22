@@ -147,13 +147,16 @@ type legacyLoadStrikeReportingSink interface {
 
 type reportingSinkSpec struct {
 	loadStrikeReportingSinkBase
-	Kind          string                    `json:"Kind"`
-	InfluxDB      *InfluxDBSinkOptions      `json:"InfluxDb,omitempty"`
-	TimescaleDB   *TimescaleDBSinkOptions   `json:"TimescaleDb,omitempty"`
-	GrafanaLoki   *GrafanaLokiSinkOptions   `json:"GrafanaLoki,omitempty"`
-	Datadog       *DatadogSinkOptions       `json:"Datadog,omitempty"`
-	Splunk        *SplunkSinkOptions        `json:"Splunk,omitempty"`
-	OTELCollector *OTELCollectorSinkOptions `json:"OtelCollector,omitempty"`
+	Kind          string                         `json:"Kind"`
+	InfluxDB      *InfluxDBSinkOptions           `json:"InfluxDb,omitempty"`
+	TimescaleDB   *TimescaleDBSinkOptions        `json:"TimescaleDb,omitempty"`
+	GrafanaLoki   *GrafanaLokiSinkOptions        `json:"GrafanaLoki,omitempty"`
+	Datadog       *DatadogSinkOptions            `json:"Datadog,omitempty"`
+	Splunk        *SplunkSinkOptions             `json:"Splunk,omitempty"`
+	OTELCollector *OTELCollectorSinkOptions      `json:"OtelCollector,omitempty"`
+	HTTP          *HTTPReportingSinkOptions      `json:"Http,omitempty"`
+	Kafka         *KafkaReportingSinkOptions     `json:"Kafka,omitempty"`
+	JsonlFile     *JsonlFileReportingSinkOptions `json:"JsonlFile,omitempty"`
 }
 
 // SinkName exposes the sink name operation. Use this when interacting with the SDK through this surface.
@@ -238,6 +241,21 @@ type OTELCollectorSinkOptions struct {
 	StaticResourceAttributes map[string]string `json:"StaticResourceAttributes,omitempty"`
 }
 
+type HTTPReportingSinkOptions struct {
+	EndpointURL    string            `json:"EndpointUrl,omitempty"`
+	Headers        map[string]string `json:"Headers,omitempty"`
+	TimeoutSeconds int               `json:"TimeoutSeconds,omitempty"`
+}
+
+type KafkaReportingSinkOptions struct {
+	Topic   string                            `json:"Topic,omitempty"`
+	Publish func(topic, payload string) error `json:"-"`
+}
+
+type JsonlFileReportingSinkOptions struct {
+	Path string `json:"Path,omitempty"`
+}
+
 type InfluxDbReportingSinkOptions = InfluxDBSinkOptions
 type TimescaleDbReportingSinkOptions = TimescaleDBSinkOptions
 type OtelCollectorReportingSinkOptions = OTELCollectorSinkOptions
@@ -296,6 +314,90 @@ type PortalReportingSink struct {
 
 // SinkName exposes the sink name operation. Use this when interacting with the SDK through this surface.
 func (PortalReportingSink) SinkName() string { return "portal" }
+
+type PrometheusRemoteWriteReportingSink struct {
+	loadStrikeReportingSinkBase
+	Options HTTPReportingSinkOptions
+}
+
+func (PrometheusRemoteWriteReportingSink) SinkName() string { return "prometheusremotewrite" }
+
+type CloudWatchReportingSink struct {
+	loadStrikeReportingSinkBase
+	Options HTTPReportingSinkOptions
+}
+
+func (CloudWatchReportingSink) SinkName() string { return "cloudwatch" }
+
+type DynatraceReportingSink struct {
+	loadStrikeReportingSinkBase
+	Options HTTPReportingSinkOptions
+}
+
+func (DynatraceReportingSink) SinkName() string { return "dynatrace" }
+
+type ElasticsearchReportingSink struct {
+	loadStrikeReportingSinkBase
+	Options HTTPReportingSinkOptions
+}
+
+func (ElasticsearchReportingSink) SinkName() string { return "elasticsearch" }
+
+type OpenSearchReportingSink struct {
+	loadStrikeReportingSinkBase
+	Options HTTPReportingSinkOptions
+}
+
+func (OpenSearchReportingSink) SinkName() string { return "opensearch" }
+
+type KafkaReportingSink struct {
+	loadStrikeReportingSinkBase
+	Options KafkaReportingSinkOptions
+}
+
+func (KafkaReportingSink) SinkName() string { return "kafka" }
+
+type StatsDReportingSink struct {
+	loadStrikeReportingSinkBase
+	Options HTTPReportingSinkOptions
+}
+
+func (StatsDReportingSink) SinkName() string { return "statsd" }
+
+type DogStatsDReportingSink struct {
+	loadStrikeReportingSinkBase
+	Options HTTPReportingSinkOptions
+}
+
+func (DogStatsDReportingSink) SinkName() string { return "dogstatsd" }
+
+type NewRelicReportingSink struct {
+	loadStrikeReportingSinkBase
+	Options HTTPReportingSinkOptions
+}
+
+func (NewRelicReportingSink) SinkName() string { return "newrelic" }
+
+type NetdataStatsDReportingSink struct {
+	loadStrikeReportingSinkBase
+	Options HTTPReportingSinkOptions
+}
+
+func (NetdataStatsDReportingSink) SinkName() string { return "netdatastatsd" }
+
+type JsonlFileReportingSink struct {
+	loadStrikeReportingSinkBase
+	Options JsonlFileReportingSinkOptions
+}
+
+func (JsonlFileReportingSink) SinkName() string { return "jsonl" }
+
+type GenericWebhookReportingSink struct {
+	loadStrikeReportingSinkBase
+	Options HTTPReportingSinkOptions
+}
+
+func (GenericWebhookReportingSink) SinkName() string { return "webhook" }
 
 type endpointProduceResult struct {
 	IsSuccess    bool
