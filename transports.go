@@ -15,8 +15,8 @@ type TrackingConfigurationSpec struct {
 	TimeoutSweepIntervalSeconds        float64               `json:"TimeoutSweepIntervalSeconds,omitempty"`
 	TimeoutBatchSize                   int                   `json:"TimeoutBatchSize,omitempty"`
 	TimeoutCountsAsFailure             bool                  `json:"TimeoutCountsAsFailure,omitempty"`
-	TrackingFieldValueCaseSensitive    bool                  `json:"TrackingFieldValueCaseSensitive,omitempty"`
-	GatherByFieldValueCaseSensitive    bool                  `json:"GatherByFieldValueCaseSensitive,omitempty"`
+	TrackingFieldValueCaseSensitive    bool                  `json:"TrackingFieldValueCaseSensitive"`
+	GatherByFieldValueCaseSensitive    bool                  `json:"GatherByFieldValueCaseSensitive"`
 	ExecuteOriginalScenarioRun         bool                  `json:"ExecuteOriginalScenarioRun,omitempty"`
 	UseLoadStrikeTraceIDHeader         bool                  `json:"UseLoadStrikeTraceIdHeader,omitempty"`
 	MetricPrefix                       string                `json:"MetricPrefix,omitempty"`
