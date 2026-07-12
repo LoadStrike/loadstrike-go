@@ -1,7 +1,7 @@
 package loadstrike
 
 const (
-	moduleVersion          = "v0.1.30001"
+	moduleVersion          = "v0.1.30201"
 	runtimeProtocolVersion = 1
 )
 
