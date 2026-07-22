@@ -46,6 +46,7 @@ type scenarioDefinition struct {
 	Steps                   []scenarioStep
 	AutopilotHTTP           *LoadStrikeAutopilotHTTPReplay
 	InternalLicenseFeatures []string
+	DeclaredStepNames       []string
 }
 
 type scenarioLike interface {
@@ -186,6 +187,25 @@ func (s scenarioDefinition) WithTrackingConfiguration(tracking *TrackingConfigur
 // WithCrossPlatformTracking is a convenience alias for WithTrackingConfiguration.
 func (s scenarioDefinition) WithCrossPlatformTracking(tracking *TrackingConfigurationSpec) scenarioDefinition {
 	return s.WithTrackingConfiguration(tracking)
+}
+
+// WithDeclaredSteps declares the bounded Load Engine V2 step series. Runtime
+// step names not declared here are reported through the typed <other> series.
+func (s scenarioDefinition) WithDeclaredSteps(stepNames ...string) scenarioDefinition {
+	seen := make(map[string]struct{}, len(stepNames))
+	values := make([]string, len(stepNames))
+	for index, stepName := range stepNames {
+		if strings.TrimSpace(stepName) == "" {
+			panic("Declared step names must be non-empty.")
+		}
+		if _, exists := seen[stepName]; exists {
+			panic("Declared step names must be unique.")
+		}
+		seen[stepName] = struct{}{}
+		values[index] = stepName
+	}
+	s.DeclaredStepNames = values
+	return s
 }
 
 func (s scenarioDefinition) withInternalLicenseFeatures(features ...string) scenarioDefinition {

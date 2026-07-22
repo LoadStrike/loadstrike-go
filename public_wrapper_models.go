@@ -25,42 +25,48 @@ func (s LoadStrikeRequestStats) toNative() requestStats {
 
 // LoadStrikeDataTransferStats mirrors the .NET data-transfer-stats wrapper contract.
 type LoadStrikeDataTransferStats struct {
-	AllBytes  int64   `json:"AllBytes,omitempty"`
-	MinBytes  int64   `json:"MinBytes,omitempty"`
-	MaxBytes  int64   `json:"MaxBytes,omitempty"`
-	MeanBytes int64   `json:"MeanBytes,omitempty"`
-	Percent50 int64   `json:"Percent50,omitempty"`
-	Percent75 int64   `json:"Percent75,omitempty"`
-	Percent95 int64   `json:"Percent95,omitempty"`
-	Percent99 int64   `json:"Percent99,omitempty"`
-	StdDev    float64 `json:"StdDev,omitempty"`
+	AllBytes   int64   `json:"AllBytes,omitempty"`
+	AllBytes64 string  `json:"AllBytes64,omitempty"`
+	MinBytes   int64   `json:"MinBytes,omitempty"`
+	MaxBytes   int64   `json:"MaxBytes,omitempty"`
+	MeanBytes  int64   `json:"MeanBytes,omitempty"`
+	Percent50  int64   `json:"Percent50,omitempty"`
+	Percent75  int64   `json:"Percent75,omitempty"`
+	Percent95  int64   `json:"Percent95,omitempty"`
+	Percent99  int64   `json:"Percent99,omitempty"`
+	Percent100 int64   `json:"Percent100,omitempty"`
+	StdDev     float64 `json:"StdDev,omitempty"`
 }
 
 func newLoadStrikeDataTransferStats(native dataTransferStats) LoadStrikeDataTransferStats {
 	return LoadStrikeDataTransferStats{
-		AllBytes:  native.AllBytes,
-		MinBytes:  native.MinBytes,
-		MaxBytes:  native.MaxBytes,
-		MeanBytes: native.MeanBytes,
-		Percent50: native.Percent50,
-		Percent75: native.Percent75,
-		Percent95: native.Percent95,
-		Percent99: native.Percent99,
-		StdDev:    native.StdDev,
+		AllBytes:   native.AllBytes,
+		AllBytes64: native.AllBytes64,
+		MinBytes:   native.MinBytes,
+		MaxBytes:   native.MaxBytes,
+		MeanBytes:  native.MeanBytes,
+		Percent50:  native.Percent50,
+		Percent75:  native.Percent75,
+		Percent95:  native.Percent95,
+		Percent99:  native.Percent99,
+		Percent100: native.Percent100,
+		StdDev:     native.StdDev,
 	}
 }
 
 func (s LoadStrikeDataTransferStats) toNative() dataTransferStats {
 	return dataTransferStats{
-		AllBytes:  s.AllBytes,
-		MinBytes:  s.MinBytes,
-		MaxBytes:  s.MaxBytes,
-		MeanBytes: s.MeanBytes,
-		Percent50: s.Percent50,
-		Percent75: s.Percent75,
-		Percent95: s.Percent95,
-		Percent99: s.Percent99,
-		StdDev:    s.StdDev,
+		AllBytes:   s.AllBytes,
+		AllBytes64: s.AllBytes64,
+		MinBytes:   s.MinBytes,
+		MaxBytes:   s.MaxBytes,
+		MeanBytes:  s.MeanBytes,
+		Percent50:  s.Percent50,
+		Percent75:  s.Percent75,
+		Percent95:  s.Percent95,
+		Percent99:  s.Percent99,
+		Percent100: s.Percent100,
+		StdDev:     s.StdDev,
 	}
 }
 

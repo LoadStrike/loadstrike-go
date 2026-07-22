@@ -65,6 +65,9 @@ func runViaPrivateRuntime(contextState *contextState, registry *runtimeCallbackR
 		return runResult{}, fmt.Errorf("write runtime plan: %w", err)
 	}
 
+	// runtimePath is returned only after authenticated-manifest and SHA-256 verification;
+	// exec.Command receives it and the remaining values as argv without invoking a shell.
+	// nosemgrep: vulnerability-tools.semgrep-rules.go.lang.security.audit.dangerous-exec-command
 	cmd := exec.Command(
 		runtimePath,
 		"--host", host.address,
@@ -124,6 +127,9 @@ func runAutopilotViaPrivateRuntime(request LoadStrikeAutopilotRequest) (LoadStri
 		return LoadStrikeAutopilotResult{}, fmt.Errorf("write autopilot request: %w", err)
 	}
 
+	// runtimePath is returned only after authenticated-manifest and SHA-256 verification;
+	// exec.Command receives it and the remaining values as argv without invoking a shell.
+	// nosemgrep: vulnerability-tools.semgrep-rules.go.lang.security.audit.dangerous-exec-command
 	cmd := exec.Command(
 		runtimePath,
 		"--autopilot-input", requestPath,

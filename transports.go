@@ -28,7 +28,7 @@ type TrackingConfigurationSpec struct {
 // LoadStrikeTrackingConfigurationSpec exposes the shared runtime-contract tracking name.
 type LoadStrikeTrackingConfigurationSpec = TrackingConfigurationSpec
 
-// ForDuration configures the observation window sent to the private runtime for CorrelateExistingTraffic.
+// ForDuration configures the observation window used by CorrelateExistingTraffic.
 func (c *TrackingConfigurationSpec) ForDuration(duration TimeSpan, cancellationContexts ...stdcontext.Context) *TrackingConfigurationSpec {
 	if c == nil {
 		return nil

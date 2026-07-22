@@ -73,14 +73,16 @@ type runtimeHTTPPluginRequest struct {
 }
 
 type runtimeHTTPSinkRequest struct {
-	Stage          string                         `json:"stage"`
-	SinkName       string                         `json:"sinkName,omitempty"`
-	Context        *runtimeHTTPHostContextPayload `json:"context,omitempty"`
-	SessionInfo    *runtimeHTTPSessionInfoPayload `json:"sessionInfo,omitempty"`
-	InfraConfig    map[string]any                 `json:"infraConfig,omitempty"`
-	RealtimeStats  []LoadStrikeScenarioStats      `json:"realtimeStats,omitempty"`
-	RealtimeMetric *LoadStrikeMetricStats         `json:"realtimeMetrics,omitempty"`
-	Result         *runResult                     `json:"result,omitempty"`
+	Stage               string                               `json:"stage"`
+	SinkName            string                               `json:"sinkName,omitempty"`
+	Context             *runtimeHTTPHostContextPayload       `json:"context,omitempty"`
+	SessionInfo         *runtimeHTTPSessionInfoPayload       `json:"sessionInfo,omitempty"`
+	InfraConfig         map[string]any                       `json:"infraConfig,omitempty"`
+	RealtimeStats       []LoadStrikeScenarioStats            `json:"realtimeStats,omitempty"`
+	RealtimeMetric      *LoadStrikeMetricStats               `json:"realtimeMetrics,omitempty"`
+	Result              *runResult                           `json:"result,omitempty"`
+	IterationBatch      *LoadStrikeIterationObservationBatch `json:"iterationBatch,omitempty"`
+	IterationCompletion *LoadStrikeIterationStreamCompletion `json:"iterationCompletion,omitempty"`
 }
 
 type runtimeHTTPPolicyRequest struct {
@@ -445,6 +447,36 @@ func (h *runtimeHTTPHostHandle) handleSinkCallback(registry *runtimeCallbackRegi
 				result = newLoadStrikeRunResult(*payload.Result)
 			}
 			if err := sink.SaveRunResult(result).Await(); err != nil {
+				http.Error(writer, err.Error(), http.StatusInternalServerError)
+				return
+			}
+			writer.WriteHeader(http.StatusNoContent)
+		case "saveiterationbatch":
+			iterationSink, ok := sink.(LoadStrikeIterationBatchSink)
+			if !ok {
+				http.Error(writer, "reporting sink does not support raw iteration batches", http.StatusNotImplemented)
+				return
+			}
+			batch := LoadStrikeIterationObservationBatch{}
+			if payload.IterationBatch != nil {
+				batch = *payload.IterationBatch
+			}
+			if err := iterationSink.SaveIterationBatch(batch).Await(); err != nil {
+				http.Error(writer, err.Error(), http.StatusInternalServerError)
+				return
+			}
+			writer.WriteHeader(http.StatusNoContent)
+		case "completeiterationstream":
+			iterationSink, ok := sink.(LoadStrikeIterationBatchSink)
+			if !ok {
+				http.Error(writer, "reporting sink does not support raw iteration batches", http.StatusNotImplemented)
+				return
+			}
+			completion := LoadStrikeIterationStreamCompletion{}
+			if payload.IterationCompletion != nil {
+				completion = *payload.IterationCompletion
+			}
+			if err := iterationSink.CompleteIterationStream(completion).Await(); err != nil {
 				http.Error(writer, err.Error(), http.StatusInternalServerError)
 				return
 			}

@@ -36,18 +36,23 @@ func (l *LoadStrikeLogger) log(level string, format string, args ...any) {
 
 // Verbose exposes the verbose operation. Use this when interacting with the SDK through this surface.
 func (l *LoadStrikeLogger) Verbose(format string, args ...any) { l.log("Verbose", format, args...) }
+
 // Debug exposes the debug operation. Use this when interacting with the SDK through this surface.
-func (l *LoadStrikeLogger) Debug(format string, args ...any)   { l.log("Debug", format, args...) }
+func (l *LoadStrikeLogger) Debug(format string, args ...any) { l.log("Debug", format, args...) }
+
 // Information exposes the information operation. Use this when interacting with the SDK through this surface.
 func (l *LoadStrikeLogger) Information(format string, args ...any) {
 	l.log("Information", format, args...)
 }
+
 // Warning exposes the warning operation. Use this when interacting with the SDK through this surface.
 func (l *LoadStrikeLogger) Warning(format string, args ...any) { l.log("Warning", format, args...) }
+
 // Error returns the current error text. Use this when you need the readable failure message.
-func (l *LoadStrikeLogger) Error(format string, args ...any)   { l.log("Error", format, args...) }
+func (l *LoadStrikeLogger) Error(format string, args ...any) { l.log("Error", format, args...) }
+
 // Fatal exposes the fatal operation. Use this when interacting with the SDK through this surface.
-func (l *LoadStrikeLogger) Fatal(format string, args ...any)   { l.log("Fatal", format, args...) }
+func (l *LoadStrikeLogger) Fatal(format string, args ...any) { l.log("Fatal", format, args...) }
 
 // LoadStrikeScenarioInfo mirrors the .NET public runtime scenario metadata contract.
 type LoadStrikeScenarioInfo struct {

@@ -84,6 +84,7 @@ func (LoadStrikeWorkerPluginBase) GetData(LoadStrikeRunResult) LoadStrikeValueTa
 
 // Stop stops the current sdk activity. Use this when finishing execution or shutting down a helper.
 func (LoadStrikeWorkerPluginBase) Stop() LoadStrikeTask { return CompletedTask() }
+
 // Dispose releases owned resources. Use this when the current SDK object is no longer needed.
 func (LoadStrikeWorkerPluginBase) Dispose() LoadStrikeTask {
 	return CompletedTask()

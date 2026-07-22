@@ -28,13 +28,15 @@ The Go SDK preserves the callback-style authoring model shown in the LoadStrike 
 
 Install the module, configure a valid runner key, and run workloads directly from Go code. The public Go module validates the runner key online before execution starts, so denied keys fail fast before the run begins.
 
-## Public Wrapper Surface
+## Public API Surface
 
-The public module matches the documented LoadStrike builder and context wrapper surface.
+The public module matches the documented LoadStrike builder and context API.
 
 Use `Create()` or `NewRunner()` to start a builder, reuse contexts with `BuildContext()` and `ConfigureContext(...)`, load JSON settings with `LoadConfig(...)` and `LoadInfraConfig(...)`, and control local report output with `WithReportFolder(...)`, `WithReportFileName(...)`, `WithReportFormats(...)`, and `WithReportingInterval(...)`.
 
-Targeted execution, realtime console metrics, and validation timing are also available on the public wrapper surface through `WithTargetScenarios(...)`, `WithDisplayConsoleMetrics(...)`, and `WithLicenseValidationTimeout(...)`.
+Targeted execution, realtime console metrics, and validation timing are available through `WithTargetScenarios(...)`, `WithDisplayConsoleMetrics(...)`, and `WithLicenseValidationTimeout(...)`.
+
+New load-test templates can explicitly select the versioned scheduler with `UseLoadEngineV2()` and tune its process-wide in-flight ceiling with `WithMaxInFlight(...)`.
 
 ## What You Can Build
 
@@ -48,6 +50,8 @@ Targeted execution, realtime console metrics, and validation timing are also ava
 - supported observability sink integrations on Enterprise
 
 Built-in transport coverage includes HTTP, Kafka, RabbitMQ, NATS, Redis Streams, Azure Event Hubs, Push Diffusion, and delegate-based custom streams.
+
+Kafka OAuthBearer authentication accepts either a direct token through `KafkaSASLOAuthBearerOptions.AccessToken`, or `OAuthBearerTokenEndpointURL` together with `ClientId` and `ClientSecret` in `AdditionalSettings`. Endpoint mode obtains tokens through the configured client-credentials flow; optional `Scope`, `Audience`, and `GrantType` settings are included in the token request.
 
 ## Cross-Platform Tracking
 
@@ -98,6 +102,8 @@ func main() {
 
 	result := loadstrike.Create().
 		AddScenario(scenario).
+		UseLoadEngineV2().
+		WithMaxInFlight(5000).
 		WithRunnerKey("rkl_your_runner_key").
 		WithoutReports().
 		Run()
@@ -107,6 +113,30 @@ func main() {
 ```
 
 `Run()` returns the full run result, including scenario metrics, generated report files, and sink status information.
+
+LoadStrike automatically obtains and verifies the exact execution component compatible with the installed SDK. Altered, expired, incomplete, or incompatible components are never executed; if a verified component cannot be obtained, the operation fails before test traffic starts.
+
+## Load Engine V2
+
+Call `UseLoadEngineV2()` explicitly for the versioned smooth-pacing and bounded-work contract. V2 spreads fixed-rate arrivals across their interval and uses one process-wide in-flight ceiling shared by scenarios and colocated logical agents. The default is 10,000; call `WithMaxInFlight(...)` after the V2 opt-in to override it with a value from 1 through 1,000,000.
+
+The requested rate is offered scenario invocations per interval. Compare it with achieved starts, delivery percentage, scheduler lag, and transport throughput. If the generator is late or at capacity, the arrival is dropped and disclosed as a generator warning rather than counted as an application failure. One scenario invocation may contain several requests or Kafka records, while browser journeys require separate host-capacity planning.
+
+Declare statically known step names with `.WithDeclaredSteps("request", "audit")`. V2 creates those report series even when a step receives no observations; an unexpected runtime step is folded into the bounded `<other>` series instead of expanding memory without limit.
+
+Go V2 global sharding is currently supported for the in-process local-development cluster. Remote multi-process V2 is not supported and is rejected before traffic. Remote V1 behavior is unchanged.
+
+Capacity evidence is hardware-specific. Follow the [Load Simulation guidance](https://loadstrike.com/docs/library-options/load-simulation) to size a safe run, distinguish offered from achieved load, and interpret the repeatable `scheduler-noop/2` profile. A benchmark artifact is evidence for that exact host and configuration, not a general 300,000-RPS claim.
+
+## Raw Iteration Reporting
+
+Observation-capable reporting sinks receive one compact record for every scenario attempt, including retry attempts and nested steps. Retries share a logical iteration ID while keeping distinct attempt indexes and final-attempt markers. Warm-up and load phases, simulation and shard identity, timestamps, observed and reported latency, outcome, status code, and response size are included; reply messages, payloads, bodies, and headers are not.
+
+Records are buffered without delaying scenario callbacks and normally flush in compressed chunks every five seconds, bounded by 50,000 observations or 8 MiB. Buffer pressure, a single record that cannot fit a batch, and per-sink queue pressure drop reporting observations with explicit warnings; they do not turn a successful system-under-test response into an application failure. A completion marker is never sent ahead of an active sink write; a drain timeout is disclosed as incomplete reporting without falsely classifying that active write as dropped. Metric-only destinations disclose that they cannot retain arbitrary strings or nested steps.
+
+Portal reporting calculates cumulative p50, p75, p95, and p99 from all final load-phase outcomes received for each scenario and run. Separate successful and failed percentiles remain available for diagnosis. The SDK does not send SDK-calculated percentile fields as the authoritative portal or observation-capable sink result.
+
+Custom reporting sinks opt in through the secondary `LoadStrikeIterationBatchSink` interface. Observation capture and bounded delivery stay asynchronous; reporting pressure is disclosed through delivery statistics and warnings without reclassifying successful system-under-test responses as failures.
 
 ## Traffic Mixes
 
@@ -120,7 +150,7 @@ Use `GenerateAutopilot(...)` or `LoadStrikeAutopilot.Generate(...)` to infer a s
 
 Use `SecretBindings` to map redaction locations such as `header:Authorization` or `body:$.client_secret` to environment variables, `TrackingSelector` when the selector cannot be inferred, and `EndpointBindings`, `AllowedReplayHosts`, or `BaseURLRewrite` when a replay target must be bound. Secret values are resolved when the generated scenario runs; they are not written into the generated plan. Any gate satisfied by user setup is omitted from `ReadinessFailures`.
 
-The public Go wrapper keeps the customer-facing API in `loadstrike.com/sdk/go` and delegates artifact parsing, inference, and replay execution to the private runtime artifact. Provide the normal runner key on the Autopilot request options so the wrapper can resolve the private runtime artifact and the runtime can validate the Autopilot entitlement; the generated scenario still runs through `WithRunnerKey(...)`.
+Provide the normal runner key on the Autopilot request options so entitlement validation can complete before generation. The generated scenario still runs through `WithRunnerKey(...)` and follows the standard runner-key validation rules.
 
 ## Runner Keys
 
@@ -130,6 +160,6 @@ Supply it with `.WithRunnerKey(...)` or through your application configuration b
 
 ## Documentation
 
-- product documentation: https://loadstrike.com/documentation
-- repository overview: [../../README.md](../../README.md)
-- SDK workspace overview: [../README.md](../README.md)
+- product documentation: https://loadstrike.com/docs
+- Go package reference: https://pkg.go.dev/loadstrike.com/sdk/go
+- public Go repository: https://github.com/loadstrike/loadstrike-go

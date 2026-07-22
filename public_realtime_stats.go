@@ -8,28 +8,39 @@ import (
 
 // LoadStrikeStepStats mirrors the .NET realtime step-stats contract name.
 type LoadStrikeStepStats struct {
-	Fail      LoadStrikeMeasurementStats `json:"Fail,omitempty"`
-	Ok        LoadStrikeMeasurementStats `json:"Ok,omitempty"`
-	SortIndex int                        `json:"SortIndex,omitempty"`
-	StepName  string                     `json:"StepName,omitempty"`
+	AllMeasurement *LoadStrikeMeasurementStats `json:"AllMeasurement,omitempty"`
+	Fail           LoadStrikeMeasurementStats  `json:"Fail,omitempty"`
+	Ok             LoadStrikeMeasurementStats  `json:"Ok,omitempty"`
+	SortIndex      int                         `json:"SortIndex,omitempty"`
+	StepName       string                      `json:"StepName,omitempty"`
 }
 
 func newLoadStrikeStepStats(native stepStats) LoadStrikeStepStats {
-	return LoadStrikeStepStats{
+	result := LoadStrikeStepStats{
 		Fail:      newLoadStrikeMeasurementStats(native.Fail),
 		Ok:        newLoadStrikeMeasurementStats(native.Ok),
 		SortIndex: native.SortIndex,
 		StepName:  native.StepName,
 	}
+	if native.AllMeasurement != nil {
+		all := newLoadStrikeMeasurementStats(*native.AllMeasurement)
+		result.AllMeasurement = &all
+	}
+	return result
 }
 
 func (s LoadStrikeStepStats) toNative() stepStats {
-	return stepStats{
+	native := stepStats{
 		Fail:      s.Fail.toNative(),
 		Ok:        s.Ok.toNative(),
 		SortIndex: s.SortIndex,
 		StepName:  s.StepName,
 	}
+	if s.AllMeasurement != nil {
+		all := s.AllMeasurement.toNative()
+		native.AllMeasurement = &all
+	}
+	return native
 }
 
 // LoadStrikeLatencyStats mirrors the .NET latency-stats contract name.
@@ -42,6 +53,7 @@ type LoadStrikeLatencyStats struct {
 	Percent75    float64                `json:"Percent75,omitempty"`
 	Percent95    float64                `json:"Percent95,omitempty"`
 	Percent99    float64                `json:"Percent99,omitempty"`
+	Percent100   float64                `json:"Percent100,omitempty"`
 	StdDev       float64                `json:"StdDev,omitempty"`
 }
 
@@ -55,6 +67,7 @@ func newLoadStrikeLatencyStats(native latencyStats) LoadStrikeLatencyStats {
 		Percent75:    native.Percent75,
 		Percent95:    native.Percent95,
 		Percent99:    native.Percent99,
+		Percent100:   native.Percent100,
 		StdDev:       native.StdDev,
 	}
 }
@@ -69,16 +82,20 @@ func (s LoadStrikeLatencyStats) toNative() latencyStats {
 		Percent75:    s.Percent75,
 		Percent95:    s.Percent95,
 		Percent99:    s.Percent99,
+		Percent100:   s.Percent100,
 		StdDev:       s.StdDev,
 	}
 }
 
 // LoadStrikeMeasurementStats mirrors the .NET measurement-stats contract name.
 type LoadStrikeMeasurementStats struct {
-	Request      LoadStrikeRequestStats      `json:"Request,omitempty"`
-	DataTransfer LoadStrikeDataTransferStats `json:"DataTransfer,omitempty"`
-	Latency      LoadStrikeLatencyStats      `json:"Latency,omitempty"`
-	StatusCodes  []LoadStrikeStatusCodeStats `json:"StatusCodes,omitempty"`
+	Count64          string                      `json:"Count64,omitempty"`
+	DistributionMode string                      `json:"DistributionMode,omitempty"`
+	MaxRelativeError float64                     `json:"MaxRelativeError,omitempty"`
+	Request          LoadStrikeRequestStats      `json:"Request,omitempty"`
+	DataTransfer     LoadStrikeDataTransferStats `json:"DataTransfer,omitempty"`
+	Latency          LoadStrikeLatencyStats      `json:"Latency,omitempty"`
+	StatusCodes      []LoadStrikeStatusCodeStats `json:"StatusCodes,omitempty"`
 }
 
 func newLoadStrikeMeasurementStats(native measurementStats) LoadStrikeMeasurementStats {
@@ -87,10 +104,13 @@ func newLoadStrikeMeasurementStats(native measurementStats) LoadStrikeMeasuremen
 		statusCodes = append(statusCodes, newLoadStrikeStatusCodeStats(statusCode))
 	}
 	return LoadStrikeMeasurementStats{
-		Request:      newLoadStrikeRequestStats(native.Request),
-		DataTransfer: newLoadStrikeDataTransferStats(native.DataTransfer),
-		Latency:      newLoadStrikeLatencyStats(native.Latency),
-		StatusCodes:  statusCodes,
+		Count64:          native.Count64,
+		DistributionMode: native.DistributionMode,
+		MaxRelativeError: native.MaxRelativeError,
+		Request:          newLoadStrikeRequestStats(native.Request),
+		DataTransfer:     newLoadStrikeDataTransferStats(native.DataTransfer),
+		Latency:          newLoadStrikeLatencyStats(native.Latency),
+		StatusCodes:      statusCodes,
 	}
 }
 
@@ -100,10 +120,13 @@ func (s LoadStrikeMeasurementStats) toNative() measurementStats {
 		statusCodes = append(statusCodes, statusCode.toNative())
 	}
 	return measurementStats{
-		Request:      s.Request.toNative(),
-		DataTransfer: s.DataTransfer.toNative(),
-		Latency:      s.Latency.toNative(),
-		StatusCodes:  statusCodes,
+		Count64:          s.Count64,
+		DistributionMode: s.DistributionMode,
+		MaxRelativeError: s.MaxRelativeError,
+		Request:          s.Request.toNative(),
+		DataTransfer:     s.DataTransfer.toNative(),
+		Latency:          s.Latency.toNative(),
+		StatusCodes:      statusCodes,
 	}
 }
 
@@ -150,6 +173,7 @@ func (s LoadStrikeMetricStats) toNative() metricStats {
 
 // LoadStrikeScenarioStats mirrors the .NET realtime scenario-stats contract name.
 type LoadStrikeScenarioStats struct {
+	AllMeasurement      *LoadStrikeMeasurementStats   `json:"AllMeasurement,omitempty"`
 	AllBytes            int64                         `json:"AllBytes,omitempty"`
 	AllFailCount        int                           `json:"AllFailCount,omitempty"`
 	AllOKCount          int                           `json:"AllOkCount,omitempty"`
@@ -161,7 +185,7 @@ type LoadStrikeScenarioStats struct {
 	Ok                  LoadStrikeMeasurementStats    `json:"Ok,omitempty"`
 	ScenarioName        string                        `json:"ScenarioName,omitempty"`
 	SortIndex           int                           `json:"SortIndex,omitempty"`
-	stepStats           []LoadStrikeStepStats         `json:"stepStats,omitempty"`
+	stepStats           []LoadStrikeStepStats
 }
 
 func newLoadStrikeScenarioStats(native scenarioStats) LoadStrikeScenarioStats {
@@ -170,7 +194,7 @@ func newLoadStrikeScenarioStats(native scenarioStats) LoadStrikeScenarioStats {
 	for _, step := range native.stepStats {
 		steps = append(steps, newLoadStrikeStepStats(step))
 	}
-	return LoadStrikeScenarioStats{
+	result := LoadStrikeScenarioStats{
 		AllBytes:            native.AllBytes,
 		AllFailCount:        native.AllFailCount,
 		AllOKCount:          native.AllOKCount,
@@ -184,6 +208,11 @@ func newLoadStrikeScenarioStats(native scenarioStats) LoadStrikeScenarioStats {
 		SortIndex:           native.SortIndex,
 		stepStats:           steps,
 	}
+	if native.AllMeasurement != nil {
+		all := newLoadStrikeMeasurementStats(*native.AllMeasurement)
+		result.AllMeasurement = &all
+	}
+	return result
 }
 
 // FindStepStats finds step stats. Use this when you want an optional lookup from SDK state.
@@ -226,20 +255,51 @@ func (s LoadStrikeScenarioStats) toNative() scenarioStats {
 		SortIndex:            s.SortIndex,
 		stepStats:            steps,
 	}
+	if s.AllMeasurement != nil {
+		all := s.AllMeasurement.toNative()
+		native.AllMeasurement = &all
+	}
 	return native
 }
 
+// MarshalJSON serializes realtime scenario stats together with their immutable step projection.
+func (s LoadStrikeScenarioStats) MarshalJSON() ([]byte, error) {
+	type wire LoadStrikeScenarioStats
+	return json.Marshal(struct {
+		wire
+		StepStats []LoadStrikeStepStats `json:"stepStats,omitempty"`
+	}{
+		wire:      wire(s),
+		StepStats: append([]LoadStrikeStepStats(nil), s.stepStats...),
+	})
+}
+
+// UnmarshalJSON rehydrates realtime scenario stats and their immutable step projection.
+func (s *LoadStrikeScenarioStats) UnmarshalJSON(data []byte) error {
+	type wire LoadStrikeScenarioStats
+	var decoded struct {
+		wire
+		StepStats []LoadStrikeStepStats `json:"stepStats,omitempty"`
+	}
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return err
+	}
+	*s = LoadStrikeScenarioStats(decoded.wire)
+	s.stepStats = append([]LoadStrikeStepStats(nil), decoded.StepStats...)
+	return nil
+}
+
 type loadStrikeNodeStats struct {
-	AllBytes        int64                       `json:"AllBytes,omitempty"`
-	AllFailCount    int                         `json:"AllFailCount,omitempty"`
-	AllOKCount      int                         `json:"AllOkCount,omitempty"`
-	AllRequestCount int                         `json:"AllRequestCount,omitempty"`
-	Duration        time.Duration               `json:"Duration,omitempty"`
-	Metrics         LoadStrikeMetricStats       `json:"Metrics,omitempty"`
-	nodeInfo        LoadStrikeNodeInfo          `json:"nodeInfo,omitempty"`
-	PluginsData     []LoadStrikePluginData      `json:"PluginsData,omitempty"`
-	scenarioStats   []LoadStrikeScenarioStats   `json:"scenarioStats,omitempty"`
-	testInfo        LoadStrikeTestInfo          `json:"testInfo"`
+	AllBytes        int64                 `json:"AllBytes,omitempty"`
+	AllFailCount    int                   `json:"AllFailCount,omitempty"`
+	AllOKCount      int                   `json:"AllOkCount,omitempty"`
+	AllRequestCount int                   `json:"AllRequestCount,omitempty"`
+	Duration        time.Duration         `json:"Duration,omitempty"`
+	Metrics         LoadStrikeMetricStats `json:"Metrics,omitempty"`
+	nodeInfo        LoadStrikeNodeInfo
+	PluginsData     []LoadStrikePluginData `json:"PluginsData,omitempty"`
+	scenarioStats   []LoadStrikeScenarioStats
+	testInfo        LoadStrikeTestInfo
 	Thresholds      []LoadStrikeThresholdResult `json:"Thresholds,omitempty"`
 }
 

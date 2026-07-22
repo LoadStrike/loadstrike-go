@@ -124,6 +124,18 @@ func (r *runnerState) WithReportingInterval(value TimeSpan) *runnerState {
 	return r
 }
 
+// UseLoadEngineV2 selects the smooth, bounded V2 scheduler.
+func (r *runnerState) UseLoadEngineV2() *runnerState {
+	r.context.UseLoadEngineV2()
+	return r
+}
+
+// WithMaxInFlight sets the process-wide V2 execution ceiling.
+func (r *runnerState) WithMaxInFlight(maxInFlight int) *runnerState {
+	r.context.WithMaxInFlight(maxInFlight)
+	return r
+}
+
 // WithMinimumLogLevel records the minimum log level for this run.
 func (r *runnerState) WithMinimumLogLevel(level LogEventLevel) *runnerState {
 	r.context.WithMinimumLogLevel(level)

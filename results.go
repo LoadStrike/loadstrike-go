@@ -17,34 +17,37 @@ const (
 
 // runResult is the public runtime result returned by runner execution.
 type runResult struct {
-	StartedUTC            time.Time            `json:"StartedUtc"`
-	CompletedUTC          time.Time            `json:"CompletedUtc"`
-	DurationMS            float64              `json:"DurationMs,omitempty"`
-	Duration              time.Duration        `json:"Duration,omitempty"`
-	AllBytes              int64                `json:"AllBytes,omitempty"`
-	AllRequestCount       int                  `json:"AllRequestCount"`
-	AllOKCount            int                  `json:"AllOkCount"`
-	AllFailCount          int                  `json:"AllFailCount"`
-	FailedThresholds      int                  `json:"FailedThresholds,omitempty"`
-	NodeType              NodeType             `json:"NodeType,omitempty"`
-	nodeInfo              nodeInfo             `json:"nodeInfo,omitempty"`
-	testInfo              testInfo             `json:"testInfo"`
-	Thresholds            []thresholdResult    `json:"Thresholds,omitempty"`
-	ThresholdResults      []thresholdResult    `json:"ThresholdResults,omitempty"`
-	metricStats           metricStats          `json:"metricStats,omitempty"`
-	Metrics               []metricResult       `json:"Metrics,omitempty"`
-	scenarioStats         []scenarioStats      `json:"scenarioStats"`
-	stepStats             []stepStats          `json:"stepStats,omitempty"`
-	ScenarioDurationsMS   map[string]float64   `json:"ScenarioDurationsMs,omitempty"`
-	PluginsData           []pluginData         `json:"PluginsData,omitempty"`
-	DisabledSinks         []string             `json:"DisabledSinks,omitempty"`
-	SinkErrors            []sinkErrorResult    `json:"SinkErrors,omitempty"`
-	ReportFiles           []string             `json:"ReportFiles,omitempty"`
-	LogFiles              []string             `json:"LogFiles,omitempty"`
-	PolicyErrors          []RuntimePolicyError `json:"PolicyErrors,omitempty"`
-	CorrelationRows       []correlationRow     `json:"CorrelationRows,omitempty"`
-	FailedCorrelationRows []correlationRow     `json:"FailedCorrelationRows,omitempty"`
-	reportTrace           *reportTrace
+	StartedUTC               time.Time     `json:"StartedUtc"`
+	CompletedUTC             time.Time     `json:"CompletedUtc"`
+	DurationMS               float64       `json:"DurationMs,omitempty"`
+	Duration                 time.Duration `json:"Duration,omitempty"`
+	AllBytes                 int64         `json:"AllBytes,omitempty"`
+	AllRequestCount          int           `json:"AllRequestCount"`
+	AllOKCount               int           `json:"AllOkCount"`
+	AllFailCount             int           `json:"AllFailCount"`
+	FailedThresholds         int           `json:"FailedThresholds,omitempty"`
+	NodeType                 NodeType      `json:"NodeType,omitempty"`
+	nodeInfo                 nodeInfo
+	testInfo                 testInfo
+	Thresholds               []thresholdResult `json:"Thresholds,omitempty"`
+	ThresholdResults         []thresholdResult `json:"ThresholdResults,omitempty"`
+	metricStats              metricStats
+	Metrics                  []metricResult `json:"Metrics,omitempty"`
+	scenarioStats            []scenarioStats
+	stepStats                []stepStats
+	ScenarioDurationsMS      map[string]float64                 `json:"ScenarioDurationsMs,omitempty"`
+	PluginsData              []pluginData                       `json:"PluginsData,omitempty"`
+	DisabledSinks            []string                           `json:"DisabledSinks,omitempty"`
+	SinkErrors               []sinkErrorResult                  `json:"SinkErrors,omitempty"`
+	ReportFiles              []string                           `json:"ReportFiles,omitempty"`
+	LogFiles                 []string                           `json:"LogFiles,omitempty"`
+	PolicyErrors             []RuntimePolicyError               `json:"PolicyErrors,omitempty"`
+	GeneratorWarnings        []LoadStrikeGeneratorWarning       `json:"GeneratorWarnings,omitempty"`
+	ObservationDeliveryStats LoadStrikeObservationDeliveryStats `json:"ObservationDeliveryStats,omitempty"`
+	ReportingComplete        bool                               `json:"ReportingComplete"`
+	CorrelationRows          []correlationRow                   `json:"CorrelationRows,omitempty"`
+	FailedCorrelationRows    []correlationRow                   `json:"FailedCorrelationRows,omitempty"`
+	reportTrace              *reportTrace
 }
 
 // MarshalJSON serializes the current value to json. Use this when bridging SDK models to JSON payloads.
@@ -52,133 +55,171 @@ func (r runResult) MarshalJSON() ([]byte, error) {
 	normalized := r
 	normalizeRunResult(&normalized)
 	type payload struct {
-		StartedUTC            time.Time            `json:"StartedUtc"`
-		CompletedUTC          time.Time            `json:"CompletedUtc"`
-		DurationMS            float64              `json:"DurationMs,omitempty"`
-		Duration              time.Duration        `json:"Duration,omitempty"`
-		AllBytes              int64                `json:"AllBytes,omitempty"`
-		AllRequestCount       int                  `json:"AllRequestCount"`
-		AllOKCount            int                  `json:"AllOkCount"`
-		AllFailCount          int                  `json:"AllFailCount"`
-		FailedThresholds      int                  `json:"FailedThresholds,omitempty"`
-		NodeType              NodeType             `json:"NodeType,omitempty"`
-		NodeInfo              nodeInfo             `json:"nodeInfo,omitempty"`
-		TestInfo              testInfo             `json:"testInfo"`
-		Thresholds            []thresholdResult    `json:"Thresholds,omitempty"`
-		ThresholdResults      []thresholdResult    `json:"ThresholdResults,omitempty"`
-		MetricStats           metricStats          `json:"metricStats,omitempty"`
-		Metrics               []metricResult       `json:"Metrics,omitempty"`
-		ScenarioStats         []scenarioStats      `json:"scenarioStats"`
-		StepStats             []stepStats          `json:"stepStats,omitempty"`
-		ScenarioDurationsMS   map[string]float64   `json:"ScenarioDurationsMs,omitempty"`
-		PluginsData           []pluginData         `json:"PluginsData,omitempty"`
-		DisabledSinks         []string             `json:"DisabledSinks,omitempty"`
-		SinkErrors            []sinkErrorResult    `json:"SinkErrors,omitempty"`
-		ReportFiles           []string             `json:"ReportFiles,omitempty"`
-		LogFiles              []string             `json:"LogFiles,omitempty"`
-		PolicyErrors          []RuntimePolicyError `json:"PolicyErrors,omitempty"`
-		CorrelationRows       []correlationRow     `json:"CorrelationRows,omitempty"`
-		FailedCorrelationRows []correlationRow     `json:"FailedCorrelationRows,omitempty"`
+		StartedUTC               time.Time                          `json:"StartedUtc"`
+		CompletedUTC             time.Time                          `json:"CompletedUtc"`
+		DurationMS               float64                            `json:"DurationMs,omitempty"`
+		Duration                 time.Duration                      `json:"Duration,omitempty"`
+		AllBytes                 int64                              `json:"AllBytes,omitempty"`
+		AllRequestCount          int                                `json:"AllRequestCount"`
+		AllOKCount               int                                `json:"AllOkCount"`
+		AllFailCount             int                                `json:"AllFailCount"`
+		FailedThresholds         int                                `json:"FailedThresholds,omitempty"`
+		NodeType                 NodeType                           `json:"NodeType,omitempty"`
+		NodeInfo                 nodeInfo                           `json:"nodeInfo,omitempty"`
+		TestInfo                 testInfo                           `json:"testInfo"`
+		Thresholds               []thresholdResult                  `json:"Thresholds,omitempty"`
+		ThresholdResults         []thresholdResult                  `json:"ThresholdResults,omitempty"`
+		MetricStats              metricStats                        `json:"metricStats,omitempty"`
+		Metrics                  []metricResult                     `json:"Metrics,omitempty"`
+		ScenarioStats            []scenarioStats                    `json:"scenarioStats"`
+		StepStats                []stepStats                        `json:"stepStats,omitempty"`
+		ScenarioDurationsMS      map[string]float64                 `json:"ScenarioDurationsMs,omitempty"`
+		PluginsData              []pluginData                       `json:"PluginsData,omitempty"`
+		DisabledSinks            []string                           `json:"DisabledSinks,omitempty"`
+		SinkErrors               []sinkErrorResult                  `json:"SinkErrors,omitempty"`
+		ReportFiles              []string                           `json:"ReportFiles,omitempty"`
+		LogFiles                 []string                           `json:"LogFiles,omitempty"`
+		PolicyErrors             []RuntimePolicyError               `json:"PolicyErrors,omitempty"`
+		GeneratorWarnings        []LoadStrikeGeneratorWarning       `json:"GeneratorWarnings,omitempty"`
+		ObservationDeliveryStats LoadStrikeObservationDeliveryStats `json:"ObservationDeliveryStats,omitempty"`
+		ReportingComplete        bool                               `json:"ReportingComplete"`
+		CorrelationRows          []correlationRow                   `json:"CorrelationRows,omitempty"`
+		FailedCorrelationRows    []correlationRow                   `json:"FailedCorrelationRows,omitempty"`
 	}
 	return json.Marshal(payload{
-		StartedUTC:            normalized.StartedUTC,
-		CompletedUTC:          normalized.CompletedUTC,
-		DurationMS:            normalized.DurationMS,
-		Duration:              normalized.Duration,
-		AllBytes:              normalized.AllBytes,
-		AllRequestCount:       normalized.AllRequestCount,
-		AllOKCount:            normalized.AllOKCount,
-		AllFailCount:          normalized.AllFailCount,
-		FailedThresholds:      normalized.FailedThresholds,
-		NodeType:              normalized.NodeType,
-		NodeInfo:              normalized.nodeInfo,
-		TestInfo:              normalized.testInfo,
-		Thresholds:            append([]thresholdResult(nil), normalized.Thresholds...),
-		ThresholdResults:      append([]thresholdResult(nil), normalized.ThresholdResults...),
-		MetricStats:           normalized.metricStats,
-		Metrics:               append([]metricResult(nil), normalized.Metrics...),
-		ScenarioStats:         append([]scenarioStats(nil), normalized.scenarioStats...),
-		StepStats:             append([]stepStats(nil), normalized.stepStats...),
-		ScenarioDurationsMS:   cloneFloatMap(normalized.ScenarioDurationsMS),
-		PluginsData:           append([]pluginData(nil), normalized.PluginsData...),
-		DisabledSinks:         append([]string(nil), normalized.DisabledSinks...),
-		SinkErrors:            append([]sinkErrorResult(nil), normalized.SinkErrors...),
-		ReportFiles:           append([]string(nil), normalized.ReportFiles...),
-		LogFiles:              append([]string(nil), normalized.LogFiles...),
-		PolicyErrors:          append([]RuntimePolicyError(nil), normalized.PolicyErrors...),
-		CorrelationRows:       append([]correlationRow(nil), normalized.CorrelationRows...),
-		FailedCorrelationRows: append([]correlationRow(nil), normalized.FailedCorrelationRows...),
+		StartedUTC:               normalized.StartedUTC,
+		CompletedUTC:             normalized.CompletedUTC,
+		DurationMS:               normalized.DurationMS,
+		Duration:                 normalized.Duration,
+		AllBytes:                 normalized.AllBytes,
+		AllRequestCount:          normalized.AllRequestCount,
+		AllOKCount:               normalized.AllOKCount,
+		AllFailCount:             normalized.AllFailCount,
+		FailedThresholds:         normalized.FailedThresholds,
+		NodeType:                 normalized.NodeType,
+		NodeInfo:                 normalized.nodeInfo,
+		TestInfo:                 normalized.testInfo,
+		Thresholds:               append([]thresholdResult(nil), normalized.Thresholds...),
+		ThresholdResults:         append([]thresholdResult(nil), normalized.ThresholdResults...),
+		MetricStats:              normalized.metricStats,
+		Metrics:                  append([]metricResult(nil), normalized.Metrics...),
+		ScenarioStats:            append([]scenarioStats(nil), normalized.scenarioStats...),
+		StepStats:                append([]stepStats(nil), normalized.stepStats...),
+		ScenarioDurationsMS:      cloneFloatMap(normalized.ScenarioDurationsMS),
+		PluginsData:              append([]pluginData(nil), normalized.PluginsData...),
+		DisabledSinks:            append([]string(nil), normalized.DisabledSinks...),
+		SinkErrors:               append([]sinkErrorResult(nil), normalized.SinkErrors...),
+		ReportFiles:              append([]string(nil), normalized.ReportFiles...),
+		LogFiles:                 append([]string(nil), normalized.LogFiles...),
+		PolicyErrors:             append([]RuntimePolicyError(nil), normalized.PolicyErrors...),
+		GeneratorWarnings:        append([]LoadStrikeGeneratorWarning(nil), normalized.GeneratorWarnings...),
+		ObservationDeliveryStats: normalized.ObservationDeliveryStats,
+		ReportingComplete:        normalized.ReportingComplete,
+		CorrelationRows:          append([]correlationRow(nil), normalized.CorrelationRows...),
+		FailedCorrelationRows:    append([]correlationRow(nil), normalized.FailedCorrelationRows...),
 	})
 }
 
 // UnmarshalJSON populates the current value from json. Use this when rehydrating SDK models from JSON payloads.
 func (r *runResult) UnmarshalJSON(data []byte) error {
 	type payload struct {
-		StartedUTC            time.Time            `json:"StartedUtc"`
-		CompletedUTC          time.Time            `json:"CompletedUtc"`
-		DurationMS            float64              `json:"DurationMs,omitempty"`
-		Duration              time.Duration        `json:"Duration,omitempty"`
-		AllBytes              int64                `json:"AllBytes,omitempty"`
-		AllRequestCount       int                  `json:"AllRequestCount"`
-		AllOKCount            int                  `json:"AllOkCount"`
-		AllFailCount          int                  `json:"AllFailCount"`
-		FailedThresholds      int                  `json:"FailedThresholds,omitempty"`
-		NodeType              NodeType             `json:"NodeType,omitempty"`
-		NodeInfo              nodeInfo             `json:"nodeInfo,omitempty"`
-		TestInfo              testInfo             `json:"testInfo"`
-		Thresholds            []thresholdResult    `json:"Thresholds,omitempty"`
-		ThresholdResults      []thresholdResult    `json:"ThresholdResults,omitempty"`
-		MetricStats           metricStats          `json:"metricStats,omitempty"`
-		Metrics               []metricResult       `json:"Metrics,omitempty"`
-		ScenarioStats         []scenarioStats      `json:"scenarioStats"`
-		StepStats             []stepStats          `json:"stepStats,omitempty"`
-		ScenarioDurationsMS   map[string]float64   `json:"ScenarioDurationsMs,omitempty"`
-		PluginsData           []pluginData         `json:"PluginsData,omitempty"`
-		DisabledSinks         []string             `json:"DisabledSinks,omitempty"`
-		SinkErrors            []sinkErrorResult    `json:"SinkErrors,omitempty"`
-		ReportFiles           []string             `json:"ReportFiles,omitempty"`
-		LogFiles              []string             `json:"LogFiles,omitempty"`
-		PolicyErrors          []RuntimePolicyError `json:"PolicyErrors,omitempty"`
-		CorrelationRows       []correlationRow     `json:"CorrelationRows,omitempty"`
-		FailedCorrelationRows []correlationRow     `json:"FailedCorrelationRows,omitempty"`
+		StartedUTC               json.RawMessage                    `json:"StartedUtc"`
+		CompletedUTC             json.RawMessage                    `json:"CompletedUtc"`
+		DurationMS               float64                            `json:"DurationMs,omitempty"`
+		Duration                 time.Duration                      `json:"Duration,omitempty"`
+		AllBytes                 int64                              `json:"AllBytes,omitempty"`
+		AllRequestCount          int                                `json:"AllRequestCount"`
+		AllOKCount               int                                `json:"AllOkCount"`
+		AllFailCount             int                                `json:"AllFailCount"`
+		FailedThresholds         int                                `json:"FailedThresholds,omitempty"`
+		NodeType                 NodeType                           `json:"NodeType,omitempty"`
+		NodeInfo                 nodeInfo                           `json:"nodeInfo,omitempty"`
+		TestInfo                 testInfo                           `json:"testInfo"`
+		Thresholds               []thresholdResult                  `json:"Thresholds,omitempty"`
+		ThresholdResults         []thresholdResult                  `json:"ThresholdResults,omitempty"`
+		MetricStats              metricStats                        `json:"metricStats,omitempty"`
+		Metrics                  []metricResult                     `json:"Metrics,omitempty"`
+		ScenarioStats            []scenarioStats                    `json:"scenarioStats"`
+		StepStats                []stepStats                        `json:"stepStats,omitempty"`
+		ScenarioDurationsMS      map[string]float64                 `json:"ScenarioDurationsMs,omitempty"`
+		PluginsData              []pluginData                       `json:"PluginsData,omitempty"`
+		DisabledSinks            []string                           `json:"DisabledSinks,omitempty"`
+		SinkErrors               []sinkErrorResult                  `json:"SinkErrors,omitempty"`
+		ReportFiles              []string                           `json:"ReportFiles,omitempty"`
+		LogFiles                 []string                           `json:"LogFiles,omitempty"`
+		PolicyErrors             []RuntimePolicyError               `json:"PolicyErrors,omitempty"`
+		GeneratorWarnings        []LoadStrikeGeneratorWarning       `json:"GeneratorWarnings,omitempty"`
+		ObservationDeliveryStats LoadStrikeObservationDeliveryStats `json:"ObservationDeliveryStats,omitempty"`
+		ReportingComplete        *bool                              `json:"ReportingComplete"`
+		CorrelationRows          []correlationRow                   `json:"CorrelationRows,omitempty"`
+		FailedCorrelationRows    []correlationRow                   `json:"FailedCorrelationRows,omitempty"`
 	}
 
 	var decoded payload
 	if err := json.Unmarshal(data, &decoded); err != nil {
 		return err
 	}
+	startedUTC, err := decodeRunResultTimestamp(decoded.StartedUTC)
+	if err != nil {
+		return fmt.Errorf("decode StartedUtc: %w", err)
+	}
+	completedUTC, err := decodeRunResultTimestamp(decoded.CompletedUTC)
+	if err != nil {
+		return fmt.Errorf("decode CompletedUtc: %w", err)
+	}
+	reportingComplete := true
+	if decoded.ReportingComplete != nil {
+		reportingComplete = *decoded.ReportingComplete
+	}
 
 	*r = runResult{
-		StartedUTC:            decoded.StartedUTC,
-		CompletedUTC:          decoded.CompletedUTC,
-		DurationMS:            decoded.DurationMS,
-		Duration:              decoded.Duration,
-		AllBytes:              decoded.AllBytes,
-		AllRequestCount:       decoded.AllRequestCount,
-		AllOKCount:            decoded.AllOKCount,
-		AllFailCount:          decoded.AllFailCount,
-		FailedThresholds:      decoded.FailedThresholds,
-		NodeType:              decoded.NodeType,
-		nodeInfo:              decoded.NodeInfo,
-		testInfo:              decoded.TestInfo,
-		Thresholds:            append([]thresholdResult(nil), decoded.Thresholds...),
-		ThresholdResults:      append([]thresholdResult(nil), decoded.ThresholdResults...),
-		metricStats:           decoded.MetricStats,
-		Metrics:               append([]metricResult(nil), decoded.Metrics...),
-		scenarioStats:         append([]scenarioStats(nil), decoded.ScenarioStats...),
-		stepStats:             append([]stepStats(nil), decoded.StepStats...),
-		ScenarioDurationsMS:   cloneFloatMap(decoded.ScenarioDurationsMS),
-		PluginsData:           append([]pluginData(nil), decoded.PluginsData...),
-		DisabledSinks:         append([]string(nil), decoded.DisabledSinks...),
-		SinkErrors:            append([]sinkErrorResult(nil), decoded.SinkErrors...),
-		ReportFiles:           append([]string(nil), decoded.ReportFiles...),
-		LogFiles:              append([]string(nil), decoded.LogFiles...),
-		PolicyErrors:          append([]RuntimePolicyError(nil), decoded.PolicyErrors...),
-		CorrelationRows:       append([]correlationRow(nil), decoded.CorrelationRows...),
-		FailedCorrelationRows: append([]correlationRow(nil), decoded.FailedCorrelationRows...),
+		StartedUTC:               startedUTC,
+		CompletedUTC:             completedUTC,
+		DurationMS:               decoded.DurationMS,
+		Duration:                 decoded.Duration,
+		AllBytes:                 decoded.AllBytes,
+		AllRequestCount:          decoded.AllRequestCount,
+		AllOKCount:               decoded.AllOKCount,
+		AllFailCount:             decoded.AllFailCount,
+		FailedThresholds:         decoded.FailedThresholds,
+		NodeType:                 decoded.NodeType,
+		nodeInfo:                 decoded.NodeInfo,
+		testInfo:                 decoded.TestInfo,
+		Thresholds:               append([]thresholdResult(nil), decoded.Thresholds...),
+		ThresholdResults:         append([]thresholdResult(nil), decoded.ThresholdResults...),
+		metricStats:              decoded.MetricStats,
+		Metrics:                  append([]metricResult(nil), decoded.Metrics...),
+		scenarioStats:            append([]scenarioStats(nil), decoded.ScenarioStats...),
+		stepStats:                append([]stepStats(nil), decoded.StepStats...),
+		ScenarioDurationsMS:      cloneFloatMap(decoded.ScenarioDurationsMS),
+		PluginsData:              append([]pluginData(nil), decoded.PluginsData...),
+		DisabledSinks:            append([]string(nil), decoded.DisabledSinks...),
+		SinkErrors:               append([]sinkErrorResult(nil), decoded.SinkErrors...),
+		ReportFiles:              append([]string(nil), decoded.ReportFiles...),
+		LogFiles:                 append([]string(nil), decoded.LogFiles...),
+		PolicyErrors:             append([]RuntimePolicyError(nil), decoded.PolicyErrors...),
+		GeneratorWarnings:        append([]LoadStrikeGeneratorWarning(nil), decoded.GeneratorWarnings...),
+		ObservationDeliveryStats: decoded.ObservationDeliveryStats,
+		ReportingComplete:        reportingComplete,
+		CorrelationRows:          append([]correlationRow(nil), decoded.CorrelationRows...),
+		FailedCorrelationRows:    append([]correlationRow(nil), decoded.FailedCorrelationRows...),
 	}
 	normalizeRunResult(r)
 	return nil
+}
+
+func decodeRunResultTimestamp(data json.RawMessage) (time.Time, error) {
+	if len(data) == 0 || string(data) == "null" {
+		return time.Time{}, nil
+	}
+	var value string
+	if err := json.Unmarshal(data, &value); err != nil {
+		return time.Time{}, err
+	}
+	if value == "" {
+		return time.Time{}, nil
+	}
+	return time.Parse(time.RFC3339Nano, value)
 }
 
 // FindScenarioStats returns the named scenario stats when present.
@@ -205,6 +246,7 @@ func (r runResult) GetScenarioStats(scenarioName string) *scenarioStats {
 // scenarioStats captures top-level per-scenario request counters.
 type scenarioStats struct {
 	ScenarioName         string                  `json:"ScenarioName"`
+	AllMeasurement       *measurementStats       `json:"AllMeasurement,omitempty"`
 	AllBytes             int64                   `json:"AllBytes,omitempty"`
 	AllRequestCount      int                     `json:"AllRequestCount"`
 	AllOKCount           int                     `json:"AllOkCount"`
@@ -223,8 +265,8 @@ type scenarioStats struct {
 	Fail                 measurementStats        `json:"Fail,omitempty"`
 	LoadSimulationStats  loadSimulationStats     `json:"LoadSimulationStats,omitempty"`
 	SortIndex            int                     `json:"SortIndex,omitempty"`
-	stepStats            []stepStats             `json:"stepStats,omitempty"`
-	lookupFlavor         statsLookupFlavor       `json:"-"`
+	stepStats            []stepStats
+	lookupFlavor         statsLookupFlavor `json:"-"`
 }
 
 // MarshalJSON serializes the current value to json. Use this when bridging SDK models to JSON payloads.
@@ -233,6 +275,7 @@ func (s scenarioStats) MarshalJSON() ([]byte, error) {
 	normalizeScenarioStats(&normalized)
 	type payload struct {
 		ScenarioName         string                  `json:"ScenarioName"`
+		AllMeasurement       *measurementStats       `json:"AllMeasurement,omitempty"`
 		AllBytes             int64                   `json:"AllBytes,omitempty"`
 		AllRequestCount      int                     `json:"AllRequestCount"`
 		AllOKCount           int                     `json:"AllOkCount"`
@@ -255,6 +298,7 @@ func (s scenarioStats) MarshalJSON() ([]byte, error) {
 	}
 	return json.Marshal(payload{
 		ScenarioName:         normalized.ScenarioName,
+		AllMeasurement:       normalized.AllMeasurement,
 		AllBytes:             normalized.AllBytes,
 		AllRequestCount:      normalized.AllRequestCount,
 		AllOKCount:           normalized.AllOKCount,
@@ -281,6 +325,7 @@ func (s scenarioStats) MarshalJSON() ([]byte, error) {
 func (s *scenarioStats) UnmarshalJSON(data []byte) error {
 	type payload struct {
 		ScenarioName         string                  `json:"ScenarioName"`
+		AllMeasurement       *measurementStats       `json:"AllMeasurement,omitempty"`
 		AllBytes             int64                   `json:"AllBytes,omitempty"`
 		AllRequestCount      int                     `json:"AllRequestCount"`
 		AllOKCount           int                     `json:"AllOkCount"`
@@ -309,6 +354,7 @@ func (s *scenarioStats) UnmarshalJSON(data []byte) error {
 
 	*s = scenarioStats{
 		ScenarioName:         decoded.ScenarioName,
+		AllMeasurement:       decoded.AllMeasurement,
 		AllBytes:             decoded.AllBytes,
 		AllRequestCount:      decoded.AllRequestCount,
 		AllOKCount:           decoded.AllOKCount,
@@ -363,6 +409,7 @@ func (s scenarioStats) GetStepStats(stepName string) *stepStats {
 type stepStats struct {
 	ScenarioName    string            `json:"ScenarioName,omitempty"`
 	StepName        string            `json:"StepName,omitempty"`
+	AllMeasurement  *measurementStats `json:"AllMeasurement,omitempty"`
 	AllBytes        int64             `json:"AllBytes,omitempty"`
 	AllRequestCount int               `json:"AllRequestCount,omitempty"`
 	AllOKCount      int               `json:"AllOkCount,omitempty"`
@@ -404,10 +451,13 @@ func (s stepStats) GetStepStats(stepName string) *stepStats {
 
 // measurementStats captures request, transfer, latency, and status-code projections.
 type measurementStats struct {
-	Request      requestStats      `json:"Request,omitempty"`
-	DataTransfer dataTransferStats `json:"DataTransfer,omitempty"`
-	Latency      latencyStats      `json:"Latency,omitempty"`
-	StatusCodes  []statusCodeStats `json:"StatusCodes,omitempty"`
+	Count64          string            `json:"Count64,omitempty"`
+	DistributionMode string            `json:"DistributionMode,omitempty"`
+	MaxRelativeError float64           `json:"MaxRelativeError,omitempty"`
+	Request          requestStats      `json:"Request,omitempty"`
+	DataTransfer     dataTransferStats `json:"DataTransfer,omitempty"`
+	Latency          latencyStats      `json:"Latency,omitempty"`
+	StatusCodes      []statusCodeStats `json:"StatusCodes,omitempty"`
 }
 
 // requestStats captures request count and rate.
@@ -419,15 +469,17 @@ type requestStats struct {
 
 // dataTransferStats captures bytes distribution data.
 type dataTransferStats struct {
-	AllBytes  int64   `json:"AllBytes,omitempty"`
-	MinBytes  int64   `json:"MinBytes,omitempty"`
-	MaxBytes  int64   `json:"MaxBytes,omitempty"`
-	MeanBytes int64   `json:"MeanBytes,omitempty"`
-	Percent50 int64   `json:"Percent50,omitempty"`
-	Percent75 int64   `json:"Percent75,omitempty"`
-	Percent95 int64   `json:"Percent95,omitempty"`
-	Percent99 int64   `json:"Percent99,omitempty"`
-	StdDev    float64 `json:"StdDev,omitempty"`
+	AllBytes   int64   `json:"AllBytes,omitempty"`
+	AllBytes64 string  `json:"AllBytes64,omitempty"`
+	MinBytes   int64   `json:"MinBytes,omitempty"`
+	MaxBytes   int64   `json:"MaxBytes,omitempty"`
+	MeanBytes  int64   `json:"MeanBytes,omitempty"`
+	Percent50  int64   `json:"Percent50,omitempty"`
+	Percent75  int64   `json:"Percent75,omitempty"`
+	Percent95  int64   `json:"Percent95,omitempty"`
+	Percent99  int64   `json:"Percent99,omitempty"`
+	Percent100 int64   `json:"Percent100,omitempty"`
+	StdDev     float64 `json:"StdDev,omitempty"`
 }
 
 // latencyStats captures latency distribution data in milliseconds.
@@ -447,6 +499,7 @@ type latencyStats struct {
 	Percent75    float64      `json:"Percent75,omitempty"`
 	Percent95    float64      `json:"Percent95,omitempty"`
 	Percent99    float64      `json:"Percent99,omitempty"`
+	Percent100   float64      `json:"Percent100,omitempty"`
 	StdDev       float64      `json:"StdDev,omitempty"`
 	P50Ms        float64      `json:"P50Ms,omitempty"`
 	P75Ms        float64      `json:"P75Ms,omitempty"`
@@ -518,17 +571,17 @@ type nodeInfo struct {
 
 // nodeStats captures top-level aggregated request counters.
 type nodeStats struct {
-	AllBytes        int64             `json:"AllBytes,omitempty"`
-	AllRequestCount int               `json:"AllRequestCount"`
-	AllOKCount      int               `json:"AllOkCount"`
-	AllFailCount    int               `json:"AllFailCount"`
-	DurationMS      float64           `json:"DurationMs,omitempty"`
-	Duration        time.Duration     `json:"Duration,omitempty"`
-	Metrics         metricStats       `json:"Metrics,omitempty"`
-	nodeInfo        nodeInfo          `json:"nodeInfo,omitempty"`
-	testInfo        testInfo          `json:"testInfo"`
-	PluginsData     []pluginData      `json:"PluginsData,omitempty"`
-	scenarioStats   []scenarioStats   `json:"scenarioStats,omitempty"`
+	AllBytes        int64         `json:"AllBytes,omitempty"`
+	AllRequestCount int           `json:"AllRequestCount"`
+	AllOKCount      int           `json:"AllOkCount"`
+	AllFailCount    int           `json:"AllFailCount"`
+	DurationMS      float64       `json:"DurationMs,omitempty"`
+	Duration        time.Duration `json:"Duration,omitempty"`
+	Metrics         metricStats   `json:"Metrics,omitempty"`
+	nodeInfo        nodeInfo
+	testInfo        testInfo
+	PluginsData     []pluginData `json:"PluginsData,omitempty"`
+	scenarioStats   []scenarioStats
 	Scenarios       []scenarioStats   `json:"-"`
 	Thresholds      []thresholdResult `json:"Thresholds,omitempty"`
 }
@@ -537,8 +590,34 @@ type nodeStats struct {
 func (n nodeStats) MarshalJSON() ([]byte, error) {
 	normalized := n
 	normalizeNodeStats(&normalized)
-	type payload nodeStats
-	return json.Marshal(payload(normalized))
+	type payload struct {
+		AllBytes        int64             `json:"AllBytes,omitempty"`
+		AllRequestCount int               `json:"AllRequestCount"`
+		AllOKCount      int               `json:"AllOkCount"`
+		AllFailCount    int               `json:"AllFailCount"`
+		DurationMS      float64           `json:"DurationMs,omitempty"`
+		Duration        time.Duration     `json:"Duration,omitempty"`
+		Metrics         metricStats       `json:"Metrics,omitempty"`
+		NodeInfo        nodeInfo          `json:"nodeInfo,omitempty"`
+		TestInfo        testInfo          `json:"testInfo"`
+		PluginsData     []pluginData      `json:"PluginsData,omitempty"`
+		ScenarioStats   []scenarioStats   `json:"scenarioStats,omitempty"`
+		Thresholds      []thresholdResult `json:"Thresholds,omitempty"`
+	}
+	return json.Marshal(payload{
+		AllBytes:        normalized.AllBytes,
+		AllRequestCount: normalized.AllRequestCount,
+		AllOKCount:      normalized.AllOKCount,
+		AllFailCount:    normalized.AllFailCount,
+		DurationMS:      normalized.DurationMS,
+		Duration:        normalized.Duration,
+		Metrics:         normalized.Metrics,
+		NodeInfo:        normalized.nodeInfo,
+		TestInfo:        normalized.testInfo,
+		PluginsData:     append([]pluginData(nil), normalized.PluginsData...),
+		ScenarioStats:   append([]scenarioStats(nil), normalized.scenarioStats...),
+		Thresholds:      append([]thresholdResult(nil), normalized.Thresholds...),
+	})
 }
 
 // UnmarshalJSON populates the current value from json. Use this when rehydrating SDK models from JSON payloads.
@@ -551,10 +630,10 @@ func (n *nodeStats) UnmarshalJSON(data []byte) error {
 		DurationMS      float64           `json:"DurationMs,omitempty"`
 		Duration        time.Duration     `json:"Duration,omitempty"`
 		Metrics         metricStats       `json:"Metrics,omitempty"`
-		nodeInfo        nodeInfo          `json:"nodeInfo,omitempty"`
-		testInfo        testInfo          `json:"testInfo"`
+		NodeInfo        nodeInfo          `json:"nodeInfo,omitempty"`
+		TestInfo        testInfo          `json:"testInfo"`
 		PluginsData     []pluginData      `json:"PluginsData,omitempty"`
-		scenarioStats   []scenarioStats   `json:"scenarioStats,omitempty"`
+		ScenarioStats   []scenarioStats   `json:"scenarioStats,omitempty"`
 		Scenarios       []scenarioStats   `json:"Scenarios,omitempty"`
 		Thresholds      []thresholdResult `json:"Thresholds,omitempty"`
 	}
@@ -569,10 +648,10 @@ func (n *nodeStats) UnmarshalJSON(data []byte) error {
 	n.DurationMS = decoded.DurationMS
 	n.Duration = decoded.Duration
 	n.Metrics = decoded.Metrics
-	n.nodeInfo = decoded.nodeInfo
-	n.testInfo = decoded.testInfo
+	n.nodeInfo = decoded.NodeInfo
+	n.testInfo = decoded.TestInfo
 	n.PluginsData = append([]pluginData(nil), decoded.PluginsData...)
-	n.scenarioStats = append([]scenarioStats(nil), decoded.scenarioStats...)
+	n.scenarioStats = append([]scenarioStats(nil), decoded.ScenarioStats...)
 	if len(n.scenarioStats) == 0 {
 		n.scenarioStats = append([]scenarioStats(nil), decoded.Scenarios...)
 	}

@@ -6,9 +6,8 @@ import (
 	"strings"
 )
 
-// trackingPayload is the internal transport shape shared by the public wrapper
-// adapters and host callback contracts. Execution/correlation engines live in
-// the private runtime.
+// trackingPayload is the internal transport shape shared by the public adapters
+// and host callback contracts.
 type trackingPayload struct {
 	Headers            map[string]string `json:"headers,omitempty"`
 	Body               any               `json:"body,omitempty"`

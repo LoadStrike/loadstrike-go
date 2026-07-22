@@ -500,6 +500,17 @@ func (s loadStrikeScenario) WithCrossPlatformTracking(tracking *TrackingConfigur
 	return newLoadStrikeScenario(s.nativeValue().WithCrossPlatformTracking(tracking))
 }
 
+// WithDeclaredSteps declares the step names that receive independent bounded
+// Load Engine V2 distributions.
+func (s loadStrikeScenario) WithDeclaredSteps(stepNames ...string) LoadStrikeScenario {
+	return newLoadStrikeScenario(s.nativeValue().WithDeclaredSteps(stepNames...))
+}
+
+// GetDeclaredSteps returns a copy of the declared Load Engine V2 step names.
+func (s loadStrikeScenario) GetDeclaredSteps() []string {
+	return append([]string(nil), s.nativeValue().DeclaredStepNames...)
+}
+
 func (s loadStrikeScenario) withSteps(steps ...any) LoadStrikeScenario {
 	return newLoadStrikeScenario(s.nativeValue().WithSteps(normalizePublicSteps(steps...)...))
 }

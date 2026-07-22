@@ -33,16 +33,19 @@ type counterMetric struct {
 
 // Exposes the public MetricName operation.
 // Use this when the surrounding wrapper type makes this operation the clearest way to express your intent.
-func (m *counterMetric) MetricName() string    { return m.metricName }
+func (m *counterMetric) MetricName() string { return m.metricName }
+
 // Exposes the public UnitOfMeasure operation.
 // Use this when the surrounding wrapper type makes this operation the clearest way to express your intent.
 func (m *counterMetric) UnitOfMeasure() string { return m.unitOfMeasure }
+
 // Adds a value to the current metric.
 // Use this when a counter or gauge should be incremented by an explicit delta.
-func (m *counterMetric) Add(value int64)       { m.value.Add(value) }
+func (m *counterMetric) Add(value int64) { m.value.Add(value) }
+
 // Returns the current metric value.
 // Use this when custom metric state needs to be inspected inside user code.
-func (m *counterMetric) Value() int64          { return m.value.Load() }
+func (m *counterMetric) Value() int64 { return m.value.Load() }
 
 type gaugeMetric struct {
 	metricName    string
@@ -52,16 +55,19 @@ type gaugeMetric struct {
 
 // Exposes the public MetricName operation.
 // Use this when the surrounding wrapper type makes this operation the clearest way to express your intent.
-func (m *gaugeMetric) MetricName() string    { return m.metricName }
+func (m *gaugeMetric) MetricName() string { return m.metricName }
+
 // Exposes the public UnitOfMeasure operation.
 // Use this when the surrounding wrapper type makes this operation the clearest way to express your intent.
 func (m *gaugeMetric) UnitOfMeasure() string { return m.unitOfMeasure }
+
 // Sets the current gauge value.
 // Use this when the latest observed value should replace the previous one.
-func (m *gaugeMetric) Set(value float64)     { m.valueBits.Store(math.Float64bits(value)) }
+func (m *gaugeMetric) Set(value float64) { m.valueBits.Store(math.Float64bits(value)) }
+
 // Returns the current metric value.
 // Use this when custom metric state needs to be inspected inside user code.
-func (m *gaugeMetric) Value() float64        { return math.Float64frombits(m.valueBits.Load()) }
+func (m *gaugeMetric) Value() float64 { return math.Float64frombits(m.valueBits.Load()) }
 
 type metricNamespace struct{}
 

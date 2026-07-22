@@ -16,6 +16,8 @@ type runtimePlan struct {
 }
 
 type runtimeContextPlan struct {
+	LoadEngineContractVersion        int                        `json:"loadEngineContractVersion,omitempty"`
+	MaxInFlight                      int                        `json:"maxInFlight,omitempty"`
 	ReportsEnabled                   bool                       `json:"reportsEnabled"`
 	RestartIterationMaxAttempts      int                        `json:"restartIterationMaxAttempts,omitempty"`
 	ReportingIntervalSeconds         float64                    `json:"reportingIntervalSeconds,omitempty"`
@@ -26,6 +28,8 @@ type runtimeContextPlan struct {
 	SessionID                        string                     `json:"sessionId,omitempty"`
 	ClusterID                        string                     `json:"clusterId,omitempty"`
 	AgentGroup                       string                     `json:"agentGroup,omitempty"`
+	AgentID                          string                     `json:"agentId,omitempty"`
+	ExpectedAgentIDs                 []string                   `json:"expectedAgentIds,omitempty"`
 	NatsServerURL                    string                     `json:"natsServerUrl,omitempty"`
 	NodeType                         NodeType                   `json:"nodeType,omitempty"`
 	AgentsCount                      int                        `json:"agentsCount,omitempty"`
@@ -49,18 +53,19 @@ type runtimeContextPlan struct {
 }
 
 type runtimeReportingSinkPlan struct {
-	Kind          string                         `json:"kind"`
-	Name          string                         `json:"name,omitempty"`
-	CallbackURL   string                         `json:"callbackUrl,omitempty"`
-	InfluxDB      *InfluxDBSinkOptions           `json:"influxDb,omitempty"`
-	TimescaleDB   *TimescaleDBSinkOptions        `json:"timescaleDb,omitempty"`
-	GrafanaLoki   *GrafanaLokiSinkOptions        `json:"grafanaLoki,omitempty"`
-	Datadog       *DatadogSinkOptions            `json:"datadog,omitempty"`
-	Splunk        *SplunkSinkOptions             `json:"splunk,omitempty"`
-	OTELCollector *OTELCollectorSinkOptions      `json:"otelCollector,omitempty"`
-	HTTP          *HTTPReportingSinkOptions      `json:"http,omitempty"`
-	Kafka         *KafkaReportingSinkOptions     `json:"kafka,omitempty"`
-	JsonlFile     *JsonlFileReportingSinkOptions `json:"jsonlFile,omitempty"`
+	Kind                     string                         `json:"kind"`
+	Name                     string                         `json:"name,omitempty"`
+	CallbackURL              string                         `json:"callbackUrl,omitempty"`
+	SupportsIterationBatches bool                           `json:"supportsIterationBatches,omitempty"`
+	InfluxDB                 *InfluxDBSinkOptions           `json:"influxDb,omitempty"`
+	TimescaleDB              *TimescaleDBSinkOptions        `json:"timescaleDb,omitempty"`
+	GrafanaLoki              *GrafanaLokiSinkOptions        `json:"grafanaLoki,omitempty"`
+	Datadog                  *DatadogSinkOptions            `json:"datadog,omitempty"`
+	Splunk                   *SplunkSinkOptions             `json:"splunk,omitempty"`
+	OTELCollector            *OTELCollectorSinkOptions      `json:"otelCollector,omitempty"`
+	HTTP                     *HTTPReportingSinkOptions      `json:"http,omitempty"`
+	Kafka                    *KafkaReportingSinkOptions     `json:"kafka,omitempty"`
+	JsonlFile                *JsonlFileReportingSinkOptions `json:"jsonlFile,omitempty"`
 }
 
 type runtimeWorkerPluginPlan struct {
@@ -89,6 +94,7 @@ type runtimeScenarioPlan struct {
 	Tracking                *TrackingConfigurationSpec     `json:"tracking,omitempty"`
 	AutopilotHTTP           *LoadStrikeAutopilotHTTPReplay `json:"autopilotHttp,omitempty"`
 	InternalLicenseFeatures []string                       `json:"internalLicenseFeatures,omitempty"`
+	DeclaredStepNames       []string                       `json:"declaredStepNames,omitempty"`
 }
 
 type runtimeTrafficMixPlan struct {
@@ -104,6 +110,8 @@ type runtimeTrafficMixScenarioSharePlan struct {
 
 func newRuntimeContextPlan(context contextState) runtimeContextPlan {
 	return runtimeContextPlan{
+		LoadEngineContractVersion:        context.LoadEngineContractVersion,
+		MaxInFlight:                      context.MaxInFlight,
 		ReportsEnabled:                   context.ReportsEnabled,
 		RestartIterationMaxAttempts:      context.RestartIterationMaxAttempts,
 		ReportingIntervalSeconds:         context.ReportingIntervalSeconds,
@@ -114,6 +122,8 @@ func newRuntimeContextPlan(context contextState) runtimeContextPlan {
 		SessionID:                        context.SessionID,
 		ClusterID:                        context.ClusterID,
 		AgentGroup:                       context.AgentGroup,
+		AgentID:                          context.AgentID,
+		ExpectedAgentIDs:                 append([]string(nil), context.ExpectedAgentIDs...),
 		NatsServerURL:                    context.NatsServerURL,
 		NodeType:                         context.NodeType,
 		AgentsCount:                      context.AgentsCount,
@@ -204,6 +214,7 @@ func buildRuntimeScenarioPlan(
 		Thresholds:              append([]ThresholdSpec(nil), scenario.Thresholds...),
 		AutopilotHTTP:           cloneAutopilotHTTPReplay(scenario.AutopilotHTTP),
 		InternalLicenseFeatures: append([]string(nil), scenario.InternalLicenseFeatures...),
+		DeclaredStepNames:       append([]string(nil), scenario.DeclaredStepNames...),
 	}
 	if scenario.AutopilotHTTP == nil {
 		scenarioID := registry.registerScenario(scenario)
@@ -431,10 +442,19 @@ func buildRuntimeReportingSinkPlan(
 
 	id := registry.registerReportingSink(sink)
 	return runtimeReportingSinkPlan{
-		Kind:        "callback",
-		Name:        firstNonBlank(sink.SinkName(), "reporting-sink"),
-		CallbackURL: httpHost.sinkCallbackURL(id),
+		Kind:                     "callback",
+		Name:                     firstNonBlank(sink.SinkName(), "reporting-sink"),
+		CallbackURL:              httpHost.sinkCallbackURL(id),
+		SupportsIterationBatches: implementsIterationBatchSink(sink),
 	}, nil
+}
+
+func implementsIterationBatchSink(sink LoadStrikeReportingSink) bool {
+	if sink == nil {
+		return false
+	}
+	_, ok := sink.(LoadStrikeIterationBatchSink)
+	return ok
 }
 
 func cloneTrackingConfigurationWithCallbackURLs(

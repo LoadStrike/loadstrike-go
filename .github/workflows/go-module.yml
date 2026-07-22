@@ -16,12 +16,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v5
+        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
         with:
           fetch-depth: 0
+          persist-credentials: false
 
       - name: Set up Go
-        uses: actions/setup-go@v6
+        uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6
         with:
           go-version-file: go.mod
 
@@ -41,22 +42,203 @@ jobs:
           from pathlib import Path
 
           body = Path("version.go").read_text(encoding="utf-8")
-          match = re.search(r'moduleVersion\s*=\s*"([^"]+)"', body)
-          if not match:
-              raise SystemExit("moduleVersion constant not found in version.go")
-          print(match.group(1))
+          matches = re.findall(
+              r'(?m)^[ \t]*(?:const[ \t]+)?moduleVersion[ \t]*=[ \t]*"(v(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)\.(?:0|[1-9]\d*))"[ \t]*$',
+              body,
+          )
+          if len(matches) != 1:
+              raise SystemExit(
+                  "version.go must contain exactly one canonical stable moduleVersion assignment"
+              )
+          print(matches[0])
           PY
           )"
-
-          if [[ ! "${MODULE_VERSION}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-            echo "::error::version.go must embed a stable semver tag such as v0.1.0."
-            exit 1
-          fi
 
           if [[ "${GITHUB_REF_TYPE:-}" == "tag" && "${MODULE_VERSION}" != "${GITHUB_REF_NAME}" ]]; then
             echo "::error::tag ${GITHUB_REF_NAME} does not match version.go (${MODULE_VERSION})."
             exit 1
           fi
+
+      - name: Validate exact wrapper-only repository manifest
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          python - <<'PY'
+          import subprocess
+          from pathlib import Path, PurePosixPath
+
+          root = Path(".")
+          manifest_path = Path(".github/public-wrapper-files.txt")
+          expected_payload_files = {
+              "README.md",
+              "accessibility.go",
+              "assets/logo-dark-theme.png",
+              "assets/logo-light-theme.png",
+              "atomic_replace_unix.go",
+              "atomic_replace_windows.go",
+              "autopilot.go",
+              "autopilot_contracts.go",
+              "compat_legacy_surface.go",
+              "config.go",
+              "context.go",
+              "contracts.go",
+              "doc.go",
+              "dotnet_parity_api.go",
+              "endpoint_callbacks.go",
+              "enums.go",
+              "execution_control.go",
+              "go.mod",
+              "go.sum",
+              "iteration_observations.go",
+              "loadstrike_trace.go",
+              "metrics.go",
+              "parity_helpers.go",
+              "plugins.go",
+              "policies.go",
+              "public_context_runner_wrappers.go",
+              "public_correlation_helpers.go",
+              "public_detailed_results.go",
+              "public_info_models.go",
+              "public_realtime_stats.go",
+              "public_tracking_payload.go",
+              "public_wrapper_models.go",
+              "results.go",
+              "runner.go",
+              "runtime_artifact.go",
+              "runtime_callback_registry.go",
+              "runtime_contexts.go",
+              "runtime_download.go",
+              "runtime_errors.go",
+              "runtime_facade_support.go",
+              "runtime_host_server.go",
+              "runtime_http_host.go",
+              "runtime_launcher.go",
+              "runtime_plan.go",
+              "runtime_settings.go",
+              "runtimeproto/loadstrike_runtime.pb.go",
+              "runtimeproto/loadstrike_runtime.proto",
+              "runtimeproto/loadstrike_runtime_grpc.pb.go",
+              "scenario.go",
+              "simulations.go",
+              "step.go",
+              "tasks.go",
+              "thresholds.go",
+              "tracking_contract_support.go",
+              "traffic_mix.go",
+              "transports.go",
+              "version.go",
+          }
+          required_repository_files = {
+              ".github/public-wrapper-files.txt",
+              ".github/workflows/go-module.yml",
+              ".gitignore",
+          }
+          expected_repository_files = expected_payload_files | required_repository_files
+
+          if not manifest_path.is_file():
+              raise SystemExit("::error::public wrapper payload manifest is missing")
+
+          manifest_lines = manifest_path.read_text(encoding="utf-8").splitlines()
+          if manifest_lines != sorted(expected_payload_files):
+              raise SystemExit(
+                  "::error::public wrapper payload manifest does not match the fixed CI allowlist"
+              )
+
+          for entry in manifest_lines:
+              path = PurePosixPath(entry)
+              if not entry or path.is_absolute() or ".." in path.parts or "\\" in entry:
+                  raise SystemExit(f"::error::invalid public wrapper manifest path: {entry!r}")
+              if entry in required_repository_files:
+                  raise SystemExit(
+                      f"::error::repository-control file must not appear in payload manifest: {entry}"
+                  )
+
+          symbolic_links = []
+          special_nodes = []
+          actual_files = set()
+          for path in root.rglob("*"):
+              relative = path.relative_to(root)
+              if relative.parts and relative.parts[0] == ".git":
+                  continue
+              if path.is_symlink():
+                  symbolic_links.append(relative.as_posix())
+                  continue
+              if path.is_file():
+                  actual_files.add(relative.as_posix())
+                  continue
+              if not path.is_dir():
+                  special_nodes.append(relative.as_posix())
+
+          if symbolic_links:
+              raise SystemExit(
+                  "::error::public wrapper repository contains symbolic links: "
+                  + ", ".join(sorted(symbolic_links))
+              )
+          if special_nodes:
+              raise SystemExit(
+                  "::error::public wrapper repository contains special filesystem nodes: "
+                  + ", ".join(sorted(special_nodes))
+              )
+
+          missing = sorted(expected_repository_files - actual_files)
+          unexpected = sorted(actual_files - expected_repository_files)
+          if missing or unexpected:
+              details = []
+              if missing:
+                  details.append("missing=" + ",".join(missing))
+              if unexpected:
+                  details.append("unexpected=" + ",".join(unexpected))
+              raise SystemExit(
+                  "::error::public wrapper repository does not match its fixed allowlist: "
+                  + " ".join(details)
+              )
+
+          tracked_files = set()
+          raw_index = subprocess.check_output(["git", "ls-files", "--stage", "-z"])
+          for raw_entry in raw_index.split(b"\0"):
+              if not raw_entry:
+                  continue
+              try:
+                  raw_metadata, raw_path = raw_entry.split(b"\t", 1)
+                  mode, _object_id, stage = raw_metadata.decode("ascii").split()
+                  tracked_path = raw_path.decode("utf-8")
+              except (UnicodeDecodeError, ValueError) as error:
+                  raise SystemExit(
+                      f"::error::invalid Git index entry in public wrapper repository: {error}"
+                  ) from error
+              if stage != "0":
+                  raise SystemExit(
+                      f"::error::unmerged Git index entry in public wrapper repository: {tracked_path}"
+                  )
+              if mode != "100644":
+                  kind = {
+                      "100755": "executable file",
+                      "120000": "symbolic link",
+                      "160000": "gitlink/submodule",
+                  }.get(mode, f"unsupported mode {mode}")
+                  raise SystemExit(
+                      f"::error::non-canonical Git index entry ({kind}): {tracked_path}"
+                  )
+              if tracked_path in tracked_files:
+                  raise SystemExit(
+                      f"::error::duplicate Git index entry in public wrapper repository: {tracked_path}"
+                  )
+              tracked_files.add(tracked_path)
+
+          missing_tracked = sorted(expected_repository_files - tracked_files)
+          unexpected_tracked = sorted(tracked_files - expected_repository_files)
+          if missing_tracked or unexpected_tracked:
+              details = []
+              if missing_tracked:
+                  details.append("missing=" + ",".join(missing_tracked))
+              if unexpected_tracked:
+                  details.append("unexpected=" + ",".join(unexpected_tracked))
+              raise SystemExit(
+                  "::error::public wrapper Git index does not match its fixed allowlist: "
+                  + " ".join(details)
+              )
+          PY
 
       - name: Run Go tests
         run: go test ./...
@@ -70,6 +252,6 @@ jobs:
       contents: write
     steps:
       - name: Create GitHub release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2.6.2
         with:
           generate_release_notes: true

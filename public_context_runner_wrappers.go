@@ -208,6 +208,16 @@ func (c loadStrikeContext) WithReportingInterval(value TimeSpan) LoadStrikeConte
 	return c
 }
 
+func (c loadStrikeContext) UseLoadEngineV2() LoadStrikeContext {
+	requireNativeContext(c.nativeValue()).UseLoadEngineV2()
+	return c
+}
+
+func (c loadStrikeContext) WithMaxInFlight(maxInFlight int) LoadStrikeContext {
+	requireNativeContext(c.nativeValue()).WithMaxInFlight(maxInFlight)
+	return c
+}
+
 // Sets how long the SDK waits for licensing validation to complete.
 // Use this when control-plane latency or private networking requires a longer validation window.
 func (c loadStrikeContext) WithLicenseValidationTimeout(value TimeSpan) LoadStrikeContext {
@@ -457,6 +467,16 @@ func (r loadStrikeRunner) WithReportFormats(reportFormats ...ReportFormat) LoadS
 // Use this when sinks or dashboards should receive updates at a controlled interval.
 func (r loadStrikeRunner) WithReportingInterval(value TimeSpan) LoadStrikeRunner {
 	requireRunner(r.nativeValue()).WithReportingInterval(value)
+	return r
+}
+
+func (r loadStrikeRunner) UseLoadEngineV2() LoadStrikeRunner {
+	requireRunner(r.nativeValue()).UseLoadEngineV2()
+	return r
+}
+
+func (r loadStrikeRunner) WithMaxInFlight(maxInFlight int) LoadStrikeRunner {
+	requireRunner(r.nativeValue()).WithMaxInFlight(maxInFlight)
 	return r
 }
 

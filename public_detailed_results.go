@@ -8,26 +8,27 @@ import (
 
 // LoadStrikeDetailedStepStats mirrors the .NET public detailed step-stats wrapper.
 type LoadStrikeDetailedStepStats struct {
-	scenarioName    string                     `json:"ScenarioName,omitempty"`
-	stepName        string                     `json:"StepName,omitempty"`
-	allBytes        int64                      `json:"AllBytes,omitempty"`
-	allRequestCount int                        `json:"AllRequestCount,omitempty"`
-	allOKCount      int                        `json:"AllOkCount,omitempty"`
-	allFailCount    int                        `json:"AllFailCount,omitempty"`
-	totalBytes      int64                      `json:"TotalBytes,omitempty"`
-	totalLatencyMS  float64                    `json:"TotalLatencyMs,omitempty"`
-	avgLatencyMS    float64                    `json:"AvgLatencyMs,omitempty"`
-	minLatencyMS    float64                    `json:"MinLatencyMs,omitempty"`
-	maxLatencyMS    float64                    `json:"MaxLatencyMs,omitempty"`
-	statusCodes     map[string]int             `json:"StatusCodes,omitempty"`
-	ok              LoadStrikeMeasurementStats `json:"Ok,omitempty"`
-	fail            LoadStrikeMeasurementStats `json:"Fail,omitempty"`
-	sortIndex       int                        `json:"SortIndex,omitempty"`
-	lookupFlavor    statsLookupFlavor          `json:"-"`
+	scenarioName    string
+	stepName        string
+	allBytes        int64
+	allRequestCount int
+	allOKCount      int
+	allFailCount    int
+	totalBytes      int64
+	totalLatencyMS  float64
+	avgLatencyMS    float64
+	minLatencyMS    float64
+	maxLatencyMS    float64
+	statusCodes     map[string]int
+	allMeasurement  *LoadStrikeMeasurementStats
+	ok              LoadStrikeMeasurementStats
+	fail            LoadStrikeMeasurementStats
+	sortIndex       int
+	lookupFlavor    statsLookupFlavor `json:"-"`
 }
 
 func newLoadStrikeDetailedStepStats(native stepStats) LoadStrikeDetailedStepStats {
-	return LoadStrikeDetailedStepStats{
+	result := LoadStrikeDetailedStepStats{
 		scenarioName:    native.ScenarioName,
 		stepName:        native.StepName,
 		allBytes:        native.AllBytes,
@@ -45,10 +46,15 @@ func newLoadStrikeDetailedStepStats(native stepStats) LoadStrikeDetailedStepStat
 		sortIndex:       native.SortIndex,
 		lookupFlavor:    native.lookupFlavor,
 	}
+	if native.AllMeasurement != nil {
+		all := newLoadStrikeMeasurementStats(*native.AllMeasurement)
+		result.allMeasurement = &all
+	}
+	return result
 }
 
 func (s LoadStrikeDetailedStepStats) toNative() stepStats {
-	return stepStats{
+	native := stepStats{
 		ScenarioName:    s.scenarioName,
 		StepName:        s.stepName,
 		AllBytes:        s.allBytes,
@@ -66,40 +72,82 @@ func (s LoadStrikeDetailedStepStats) toNative() stepStats {
 		SortIndex:       s.sortIndex,
 		lookupFlavor:    s.lookupFlavor,
 	}
+	if s.allMeasurement != nil {
+		all := s.allMeasurement.toNative()
+		native.AllMeasurement = &all
+	}
+	return native
+}
+
+// MarshalJSON serializes the detailed step projection without exposing mutable fields.
+func (s LoadStrikeDetailedStepStats) MarshalJSON() ([]byte, error) {
+	return json.Marshal(s.toNative())
+}
+
+// UnmarshalJSON rehydrates the detailed step projection from its public wire shape.
+func (s *LoadStrikeDetailedStepStats) UnmarshalJSON(data []byte) error {
+	var native stepStats
+	if err := json.Unmarshal(data, &native); err != nil {
+		return err
+	}
+	*s = newLoadStrikeDetailedStepStats(native)
+	return nil
 }
 
 // ScenarioName exposes the scenario name operation. Use this when interacting with the SDK through this surface.
 func (s LoadStrikeDetailedStepStats) ScenarioName() string { return s.scenarioName }
+
 // StepName exposes the step name operation. Use this when interacting with the SDK through this surface.
-func (s LoadStrikeDetailedStepStats) StepName() string     { return s.stepName }
+func (s LoadStrikeDetailedStepStats) StepName() string { return s.stepName }
+
 // AllRequestCount exposes the all request count operation. Use this when interacting with the SDK through this surface.
 func (s LoadStrikeDetailedStepStats) AllRequestCount() int { return s.allRequestCount }
+
 // OkCount exposes the ok count operation. Use this when interacting with the SDK through this surface.
-func (s LoadStrikeDetailedStepStats) OkCount() int         { return s.allOKCount }
+func (s LoadStrikeDetailedStepStats) OkCount() int { return s.allOKCount }
+
 // FailCount exposes the fail count operation. Use this when interacting with the SDK through this surface.
-func (s LoadStrikeDetailedStepStats) FailCount() int       { return s.allFailCount }
+func (s LoadStrikeDetailedStepStats) FailCount() int { return s.allFailCount }
+
 // TotalBytes exposes the total bytes operation. Use this when interacting with the SDK through this surface.
-func (s LoadStrikeDetailedStepStats) TotalBytes() int64    { return s.totalBytes }
+func (s LoadStrikeDetailedStepStats) TotalBytes() int64 { return s.totalBytes }
+
 // TotalLatencyMS exposes the total latency ms operation. Use this when interacting with the SDK through this surface.
 func (s LoadStrikeDetailedStepStats) TotalLatencyMS() float64 {
 	return s.totalLatencyMS
 }
+
 // AvgLatencyMS exposes the avg latency ms operation. Use this when interacting with the SDK through this surface.
 func (s LoadStrikeDetailedStepStats) AvgLatencyMS() float64 { return s.avgLatencyMS }
+
 // MinLatencyMS exposes the min latency ms operation. Use this when interacting with the SDK through this surface.
 func (s LoadStrikeDetailedStepStats) MinLatencyMS() float64 { return s.minLatencyMS }
+
 // MaxLatencyMS exposes the max latency ms operation. Use this when interacting with the SDK through this surface.
 func (s LoadStrikeDetailedStepStats) MaxLatencyMS() float64 { return s.maxLatencyMS }
+
 // StatusCodes exposes the status codes operation. Use this when interacting with the SDK through this surface.
 func (s LoadStrikeDetailedStepStats) StatusCodes() map[string]int {
 	return cloneStatusCodeCounts(s.statusCodes)
 }
+
 // Ok exposes the ok operation. Use this when interacting with the SDK through this surface.
-func (s LoadStrikeDetailedStepStats) Ok() LoadStrikeMeasurementStats   { return s.ok }
+func (s LoadStrikeDetailedStepStats) Ok() LoadStrikeMeasurementStats { return s.ok }
+
 // Fail exposes the fail operation. Use this when interacting with the SDK through this surface.
 func (s LoadStrikeDetailedStepStats) Fail() LoadStrikeMeasurementStats { return s.fail }
+
+// AllMeasurement returns the cumulative V2 measurement across successful and failed outcomes.
+func (s LoadStrikeDetailedStepStats) AllMeasurement() *LoadStrikeMeasurementStats {
+	if s.allMeasurement == nil {
+		return nil
+	}
+	value := *s.allMeasurement
+	return &value
+}
+
 // SortIndex exposes the sort index operation. Use this when interacting with the SDK through this surface.
-func (s LoadStrikeDetailedStepStats) SortIndex() int                   { return s.sortIndex }
+func (s LoadStrikeDetailedStepStats) SortIndex() int { return s.sortIndex }
 
 // FindStepStats finds step stats. Use this when you want an optional lookup from SDK state.
 func (s LoadStrikeDetailedStepStats) FindStepStats(stepName string) *LoadStrikeDetailedStepStats {
@@ -127,27 +175,28 @@ func (s LoadStrikeDetailedStepStats) GetStepStats(stepName string) *LoadStrikeDe
 
 // LoadStrikeDetailedScenarioStats mirrors the .NET public detailed scenario-stats wrapper.
 type LoadStrikeDetailedScenarioStats struct {
-	scenarioName         string                        `json:"ScenarioName,omitempty"`
-	allBytes             int64                         `json:"AllBytes,omitempty"`
-	allRequestCount      int                           `json:"AllRequestCount,omitempty"`
-	allOKCount           int                           `json:"AllOkCount,omitempty"`
-	allFailCount         int                           `json:"AllFailCount,omitempty"`
-	totalBytes           int64                         `json:"TotalBytes,omitempty"`
-	totalLatencyMS       float64                       `json:"TotalLatencyMs,omitempty"`
-	avgLatencyMS         float64                       `json:"AvgLatencyMs,omitempty"`
-	minLatencyMS         float64                       `json:"MinLatencyMs,omitempty"`
-	maxLatencyMS         float64                       `json:"MaxLatencyMs,omitempty"`
-	statusCodes          map[string]int                `json:"StatusCodes,omitempty"`
-	currentOperation     string                        `json:"CurrentOperation,omitempty"`
-	currentOperationType LoadStrikeOperationType       `json:"CurrentOperationType,omitempty"`
-	durationMS           float64                       `json:"DurationMs,omitempty"`
-	duration             time.Duration                 `json:"Duration,omitempty"`
-	ok                   LoadStrikeMeasurementStats    `json:"Ok,omitempty"`
-	fail                 LoadStrikeMeasurementStats    `json:"Fail,omitempty"`
-	loadSimulationStats  LoadStrikeLoadSimulationStats `json:"LoadSimulationStats,omitempty"`
-	sortIndex            int                           `json:"SortIndex,omitempty"`
-	stepStats            []LoadStrikeDetailedStepStats `json:"stepStats,omitempty"`
-	lookupFlavor         statsLookupFlavor             `json:"-"`
+	scenarioName         string
+	allBytes             int64
+	allRequestCount      int
+	allOKCount           int
+	allFailCount         int
+	totalBytes           int64
+	totalLatencyMS       float64
+	avgLatencyMS         float64
+	minLatencyMS         float64
+	maxLatencyMS         float64
+	statusCodes          map[string]int
+	allMeasurement       *LoadStrikeMeasurementStats
+	currentOperation     string
+	currentOperationType LoadStrikeOperationType
+	durationMS           float64
+	duration             time.Duration
+	ok                   LoadStrikeMeasurementStats
+	fail                 LoadStrikeMeasurementStats
+	loadSimulationStats  LoadStrikeLoadSimulationStats
+	sortIndex            int
+	stepStats            []LoadStrikeDetailedStepStats
+	lookupFlavor         statsLookupFlavor `json:"-"`
 }
 
 func newLoadStrikeDetailedScenarioStats(native scenarioStats) LoadStrikeDetailedScenarioStats {
@@ -156,7 +205,7 @@ func newLoadStrikeDetailedScenarioStats(native scenarioStats) LoadStrikeDetailed
 	for _, step := range native.stepStats {
 		steps = append(steps, newLoadStrikeDetailedStepStats(step))
 	}
-	return LoadStrikeDetailedScenarioStats{
+	result := LoadStrikeDetailedScenarioStats{
 		scenarioName:         native.ScenarioName,
 		allBytes:             native.AllBytes,
 		allRequestCount:      native.AllRequestCount,
@@ -179,6 +228,11 @@ func newLoadStrikeDetailedScenarioStats(native scenarioStats) LoadStrikeDetailed
 		stepStats:            steps,
 		lookupFlavor:         native.lookupFlavor,
 	}
+	if native.AllMeasurement != nil {
+		all := newLoadStrikeMeasurementStats(*native.AllMeasurement)
+		result.allMeasurement = &all
+	}
+	return result
 }
 
 func (s LoadStrikeDetailedScenarioStats) toNative() scenarioStats {
@@ -209,56 +263,101 @@ func (s LoadStrikeDetailedScenarioStats) toNative() scenarioStats {
 		stepStats:            steps,
 		lookupFlavor:         s.lookupFlavor,
 	}
+	if s.allMeasurement != nil {
+		all := s.allMeasurement.toNative()
+		native.AllMeasurement = &all
+	}
 	normalizeScenarioStats(&native)
 	return native
 }
 
+// MarshalJSON serializes the detailed scenario projection without exposing mutable fields.
+func (s LoadStrikeDetailedScenarioStats) MarshalJSON() ([]byte, error) {
+	return json.Marshal(s.toNative())
+}
+
+// UnmarshalJSON rehydrates the detailed scenario projection from its public wire shape.
+func (s *LoadStrikeDetailedScenarioStats) UnmarshalJSON(data []byte) error {
+	var native scenarioStats
+	if err := json.Unmarshal(data, &native); err != nil {
+		return err
+	}
+	*s = newLoadStrikeDetailedScenarioStats(native)
+	return nil
+}
+
 // ScenarioName exposes the scenario name operation. Use this when interacting with the SDK through this surface.
 func (s LoadStrikeDetailedScenarioStats) ScenarioName() string { return s.scenarioName }
+
 // AllBytes exposes the all bytes operation. Use this when interacting with the SDK through this surface.
-func (s LoadStrikeDetailedScenarioStats) AllBytes() int64      { return s.allBytes }
+func (s LoadStrikeDetailedScenarioStats) AllBytes() int64 { return s.allBytes }
+
 // AllRequestCount exposes the all request count operation. Use this when interacting with the SDK through this surface.
 func (s LoadStrikeDetailedScenarioStats) AllRequestCount() int { return s.allRequestCount }
+
 // AllOKCount exposes the all ok count operation. Use this when interacting with the SDK through this surface.
-func (s LoadStrikeDetailedScenarioStats) AllOKCount() int      { return s.allOKCount }
+func (s LoadStrikeDetailedScenarioStats) AllOKCount() int { return s.allOKCount }
+
 // AllFailCount exposes the all fail count operation. Use this when interacting with the SDK through this surface.
-func (s LoadStrikeDetailedScenarioStats) AllFailCount() int    { return s.allFailCount }
+func (s LoadStrikeDetailedScenarioStats) AllFailCount() int { return s.allFailCount }
+
 // TotalBytes exposes the total bytes operation. Use this when interacting with the SDK through this surface.
-func (s LoadStrikeDetailedScenarioStats) TotalBytes() int64    { return s.totalBytes }
+func (s LoadStrikeDetailedScenarioStats) TotalBytes() int64 { return s.totalBytes }
+
 // TotalLatencyMS exposes the total latency ms operation. Use this when interacting with the SDK through this surface.
 func (s LoadStrikeDetailedScenarioStats) TotalLatencyMS() float64 {
 	return s.totalLatencyMS
 }
+
 // AvgLatencyMS exposes the avg latency ms operation. Use this when interacting with the SDK through this surface.
 func (s LoadStrikeDetailedScenarioStats) AvgLatencyMS() float64 { return s.avgLatencyMS }
+
 // MinLatencyMS exposes the min latency ms operation. Use this when interacting with the SDK through this surface.
 func (s LoadStrikeDetailedScenarioStats) MinLatencyMS() float64 { return s.minLatencyMS }
+
 // MaxLatencyMS exposes the max latency ms operation. Use this when interacting with the SDK through this surface.
 func (s LoadStrikeDetailedScenarioStats) MaxLatencyMS() float64 { return s.maxLatencyMS }
+
 // StatusCodes exposes the status codes operation. Use this when interacting with the SDK through this surface.
 func (s LoadStrikeDetailedScenarioStats) StatusCodes() map[string]int {
 	return cloneStatusCodeCounts(s.statusCodes)
 }
+
 // CurrentOperation exposes the current operation operation. Use this when interacting with the SDK through this surface.
 func (s LoadStrikeDetailedScenarioStats) CurrentOperation() string {
 	return s.currentOperation
 }
+
 // CurrentOperationType exposes the current operation type operation. Use this when interacting with the SDK through this surface.
 func (s LoadStrikeDetailedScenarioStats) CurrentOperationType() LoadStrikeOperationType {
 	return s.currentOperationType
 }
+
 // DurationMS exposes the duration ms operation. Use this when interacting with the SDK through this surface.
-func (s LoadStrikeDetailedScenarioStats) DurationMS() float64            { return s.durationMS }
+func (s LoadStrikeDetailedScenarioStats) DurationMS() float64 { return s.durationMS }
+
 // Ok exposes the ok operation. Use this when interacting with the SDK through this surface.
 func (s LoadStrikeDetailedScenarioStats) Ok() LoadStrikeMeasurementStats { return s.ok }
+
 // Fail exposes the fail operation. Use this when interacting with the SDK through this surface.
 func (s LoadStrikeDetailedScenarioStats) Fail() LoadStrikeMeasurementStats {
 	return s.fail
 }
+
+// AllMeasurement returns the cumulative V2 measurement across successful and failed outcomes.
+func (s LoadStrikeDetailedScenarioStats) AllMeasurement() *LoadStrikeMeasurementStats {
+	if s.allMeasurement == nil {
+		return nil
+	}
+	value := *s.allMeasurement
+	return &value
+}
+
 // LoadSimulationStats loads simulation stats. Use this when configuration or runtime state should be read from external input.
 func (s LoadStrikeDetailedScenarioStats) LoadSimulationStats() LoadStrikeLoadSimulationStats {
 	return s.loadSimulationStats
 }
+
 // SortIndex exposes the sort index operation. Use this when interacting with the SDK through this surface.
 func (s LoadStrikeDetailedScenarioStats) SortIndex() int { return s.sortIndex }
 
@@ -296,34 +395,37 @@ func (s LoadStrikeDetailedScenarioStats) StepStats() []LoadStrikeDetailedStepSta
 
 // LoadStrikeRunResult mirrors the .NET public final run-result wrapper.
 type LoadStrikeRunResult struct {
-	startedUTC            time.Time                         `json:"StartedUtc"`
-	completedUTC          time.Time                         `json:"CompletedUtc"`
-	durationMS            float64                           `json:"DurationMs,omitempty"`
-	duration              time.Duration                     `json:"Duration,omitempty"`
-	allBytes              int64                             `json:"AllBytes,omitempty"`
-	allRequestCount       int                               `json:"AllRequestCount"`
-	allOKCount            int                               `json:"AllOkCount"`
-	allFailCount          int                               `json:"AllFailCount"`
-	failedThresholds      int                               `json:"FailedThresholds,omitempty"`
-	nodeType              LoadStrikeNodeType                `json:"NodeType,omitempty"`
-	nodeInfo              LoadStrikeNodeInfo                `json:"nodeInfo,omitempty"`
-	testInfo              LoadStrikeTestInfo                `json:"testInfo"`
-	thresholds            []LoadStrikeThresholdResult       `json:"Thresholds,omitempty"`
-	thresholdResults      []LoadStrikeThresholdResult       `json:"ThresholdResults,omitempty"`
-	metricStats           LoadStrikeMetricStats             `json:"metricStats,omitempty"`
-	metrics               []LoadStrikeMetricValue           `json:"Metrics,omitempty"`
-	scenarioStats         []LoadStrikeDetailedScenarioStats `json:"scenarioStats"`
-	stepStats             []LoadStrikeDetailedStepStats     `json:"stepStats,omitempty"`
-	scenarioDurationsMS   map[string]int64                  `json:"ScenarioDurationsMs,omitempty"`
-	pluginsData           []LoadStrikePluginData            `json:"PluginsData,omitempty"`
-	disabledSinks         []string                          `json:"DisabledSinks,omitempty"`
-	sinkErrors            []LoadStrikeSinkError             `json:"SinkErrors,omitempty"`
-	reportFiles           []string                          `json:"ReportFiles,omitempty"`
-	logFiles              []string                          `json:"LogFiles,omitempty"`
-	policyErrors          []LoadStrikeRuntimePolicyError    `json:"PolicyErrors,omitempty"`
-	correlationRows       []map[string]any                  `json:"CorrelationRows,omitempty"`
-	failedCorrelationRows []map[string]any                  `json:"FailedCorrelationRows,omitempty"`
-	reportTrace           *reportTrace                      `json:"-"`
+	startedUTC               time.Time
+	completedUTC             time.Time
+	durationMS               float64
+	duration                 time.Duration
+	allBytes                 int64
+	allRequestCount          int
+	allOKCount               int
+	allFailCount             int
+	failedThresholds         int
+	nodeType                 LoadStrikeNodeType
+	nodeInfo                 LoadStrikeNodeInfo
+	testInfo                 LoadStrikeTestInfo
+	thresholds               []LoadStrikeThresholdResult
+	thresholdResults         []LoadStrikeThresholdResult
+	metricStats              LoadStrikeMetricStats
+	metrics                  []LoadStrikeMetricValue
+	scenarioStats            []LoadStrikeDetailedScenarioStats
+	stepStats                []LoadStrikeDetailedStepStats
+	scenarioDurationsMS      map[string]int64
+	pluginsData              []LoadStrikePluginData
+	disabledSinks            []string
+	sinkErrors               []LoadStrikeSinkError
+	reportFiles              []string
+	logFiles                 []string
+	policyErrors             []LoadStrikeRuntimePolicyError
+	generatorWarnings        []LoadStrikeGeneratorWarning
+	observationDeliveryStats LoadStrikeObservationDeliveryStats
+	reportingComplete        bool
+	correlationRows          []map[string]any
+	failedCorrelationRows    []map[string]any
+	reportTrace              *reportTrace `json:"-"`
 }
 
 func newLoadStrikeRunResult(native runResult) LoadStrikeRunResult {
@@ -349,34 +451,37 @@ func newLoadStrikeRunResult(native runResult) LoadStrikeRunResult {
 		policyErrors = append(policyErrors, newLoadStrikeRuntimePolicyError(policyError))
 	}
 	return LoadStrikeRunResult{
-		startedUTC:            native.StartedUTC,
-		completedUTC:          native.CompletedUTC,
-		durationMS:            native.DurationMS,
-		duration:              native.Duration,
-		allBytes:              native.AllBytes,
-		allRequestCount:       native.AllRequestCount,
-		allOKCount:            native.AllOKCount,
-		allFailCount:          native.AllFailCount,
-		failedThresholds:      native.FailedThresholds,
-		nodeType:              native.NodeType,
-		nodeInfo:              newLoadStrikeNodeInfo(native.nodeInfo),
-		testInfo:              newLoadStrikeTestInfo(native.testInfo),
-		thresholds:            toLoadStrikeThresholdResultSlice(native.Thresholds),
-		thresholdResults:      toLoadStrikeThresholdResultSlice(native.ThresholdResults),
-		metricStats:           newLoadStrikeMetricStats(native.metricStats),
-		metrics:               metrics,
-		scenarioStats:         scenarios,
-		stepStats:             steps,
-		scenarioDurationsMS:   cloneInt64MapFromFloatMap(native.ScenarioDurationsMS),
-		pluginsData:           toLoadStrikePluginDataSlice(native.PluginsData),
-		disabledSinks:         append([]string(nil), native.DisabledSinks...),
-		sinkErrors:            sinkErrors,
-		reportFiles:           append([]string(nil), native.ReportFiles...),
-		logFiles:              append([]string(nil), native.LogFiles...),
-		policyErrors:          policyErrors,
-		correlationRows:       newPublicCorrelationRows(native.CorrelationRows),
-		failedCorrelationRows: newPublicCorrelationRows(native.FailedCorrelationRows),
-		reportTrace:           native.reportTrace,
+		startedUTC:               native.StartedUTC,
+		completedUTC:             native.CompletedUTC,
+		durationMS:               native.DurationMS,
+		duration:                 native.Duration,
+		allBytes:                 native.AllBytes,
+		allRequestCount:          native.AllRequestCount,
+		allOKCount:               native.AllOKCount,
+		allFailCount:             native.AllFailCount,
+		failedThresholds:         native.FailedThresholds,
+		nodeType:                 native.NodeType,
+		nodeInfo:                 newLoadStrikeNodeInfo(native.nodeInfo),
+		testInfo:                 newLoadStrikeTestInfo(native.testInfo),
+		thresholds:               toLoadStrikeThresholdResultSlice(native.Thresholds),
+		thresholdResults:         toLoadStrikeThresholdResultSlice(native.ThresholdResults),
+		metricStats:              newLoadStrikeMetricStats(native.metricStats),
+		metrics:                  metrics,
+		scenarioStats:            scenarios,
+		stepStats:                steps,
+		scenarioDurationsMS:      cloneInt64MapFromFloatMap(native.ScenarioDurationsMS),
+		pluginsData:              toLoadStrikePluginDataSlice(native.PluginsData),
+		disabledSinks:            append([]string(nil), native.DisabledSinks...),
+		sinkErrors:               sinkErrors,
+		reportFiles:              append([]string(nil), native.ReportFiles...),
+		logFiles:                 append([]string(nil), native.LogFiles...),
+		policyErrors:             policyErrors,
+		generatorWarnings:        append([]LoadStrikeGeneratorWarning(nil), native.GeneratorWarnings...),
+		observationDeliveryStats: native.ObservationDeliveryStats,
+		reportingComplete:        native.ReportingComplete,
+		correlationRows:          newPublicCorrelationRows(native.CorrelationRows),
+		failedCorrelationRows:    newPublicCorrelationRows(native.FailedCorrelationRows),
+		reportTrace:              native.reportTrace,
 	}
 }
 
@@ -402,34 +507,37 @@ func (r LoadStrikeRunResult) toNative() runResult {
 		sinkErrors = append(sinkErrors, sinkError.toNative())
 	}
 	native := runResult{
-		StartedUTC:            r.startedUTC,
-		CompletedUTC:          r.completedUTC,
-		DurationMS:            r.durationMS,
-		Duration:              r.duration,
-		AllBytes:              r.allBytes,
-		AllRequestCount:       r.allRequestCount,
-		AllOKCount:            r.allOKCount,
-		AllFailCount:          r.allFailCount,
-		FailedThresholds:      r.failedThresholds,
-		NodeType:              r.nodeType,
-		nodeInfo:              r.nodeInfo.toNative(),
-		testInfo:              r.testInfo.toNative(),
-		Thresholds:            toNativeThresholdResults(r.thresholds),
-		ThresholdResults:      toNativeThresholdResults(r.thresholdResults),
-		metricStats:           r.metricStats.toNative(),
-		Metrics:               metrics,
-		scenarioStats:         scenarios,
-		stepStats:             steps,
-		ScenarioDurationsMS:   cloneFloatMapFromInt64Map(r.scenarioDurationsMS),
-		PluginsData:           plugins,
-		DisabledSinks:         append([]string(nil), r.disabledSinks...),
-		SinkErrors:            sinkErrors,
-		ReportFiles:           append([]string(nil), r.reportFiles...),
-		LogFiles:              append([]string(nil), r.logFiles...),
-		PolicyErrors:          toNativeRuntimePolicyErrors(r.policyErrors),
-		CorrelationRows:       toNativeCorrelationRows(r.correlationRows),
-		FailedCorrelationRows: toNativeCorrelationRows(r.failedCorrelationRows),
-		reportTrace:           r.reportTrace,
+		StartedUTC:               r.startedUTC,
+		CompletedUTC:             r.completedUTC,
+		DurationMS:               r.durationMS,
+		Duration:                 r.duration,
+		AllBytes:                 r.allBytes,
+		AllRequestCount:          r.allRequestCount,
+		AllOKCount:               r.allOKCount,
+		AllFailCount:             r.allFailCount,
+		FailedThresholds:         r.failedThresholds,
+		NodeType:                 r.nodeType,
+		nodeInfo:                 r.nodeInfo.toNative(),
+		testInfo:                 r.testInfo.toNative(),
+		Thresholds:               toNativeThresholdResults(r.thresholds),
+		ThresholdResults:         toNativeThresholdResults(r.thresholdResults),
+		metricStats:              r.metricStats.toNative(),
+		Metrics:                  metrics,
+		scenarioStats:            scenarios,
+		stepStats:                steps,
+		ScenarioDurationsMS:      cloneFloatMapFromInt64Map(r.scenarioDurationsMS),
+		PluginsData:              plugins,
+		DisabledSinks:            append([]string(nil), r.disabledSinks...),
+		SinkErrors:               sinkErrors,
+		ReportFiles:              append([]string(nil), r.reportFiles...),
+		LogFiles:                 append([]string(nil), r.logFiles...),
+		PolicyErrors:             toNativeRuntimePolicyErrors(r.policyErrors),
+		GeneratorWarnings:        append([]LoadStrikeGeneratorWarning(nil), r.generatorWarnings...),
+		ObservationDeliveryStats: r.observationDeliveryStats,
+		ReportingComplete:        r.reportingComplete,
+		CorrelationRows:          toNativeCorrelationRows(r.correlationRows),
+		FailedCorrelationRows:    toNativeCorrelationRows(r.failedCorrelationRows),
+		reportTrace:              r.reportTrace,
 	}
 	normalizeRunResult(&native)
 	return native
@@ -442,6 +550,7 @@ func (r LoadStrikeRunResult) StartedUtc() string {
 	}
 	return r.startedUTC.Format(time.RFC3339Nano)
 }
+
 // CompletedUtc exposes the completed utc operation. Use this when interacting with the SDK through this surface.
 func (r LoadStrikeRunResult) CompletedUtc() string {
 	if r.completedUTC.IsZero() {
@@ -449,58 +558,91 @@ func (r LoadStrikeRunResult) CompletedUtc() string {
 	}
 	return r.completedUTC.Format(time.RFC3339Nano)
 }
+
 // DurationMS exposes the duration ms operation. Use this when interacting with the SDK through this surface.
-func (r LoadStrikeRunResult) DurationMS() float64   { return r.durationMS }
+func (r LoadStrikeRunResult) DurationMS() float64 { return r.durationMS }
+
 // AllBytes exposes the all bytes operation. Use this when interacting with the SDK through this surface.
-func (r LoadStrikeRunResult) AllBytes() int64       { return r.allBytes }
+func (r LoadStrikeRunResult) AllBytes() int64 { return r.allBytes }
+
 // AllRequestCount exposes the all request count operation. Use this when interacting with the SDK through this surface.
-func (r LoadStrikeRunResult) AllRequestCount() int  { return r.allRequestCount }
+func (r LoadStrikeRunResult) AllRequestCount() int { return r.allRequestCount }
+
 // AllOKCount exposes the all ok count operation. Use this when interacting with the SDK through this surface.
-func (r LoadStrikeRunResult) AllOKCount() int       { return r.allOKCount }
+func (r LoadStrikeRunResult) AllOKCount() int { return r.allOKCount }
+
 // AllFailCount exposes the all fail count operation. Use this when interacting with the SDK through this surface.
-func (r LoadStrikeRunResult) AllFailCount() int     { return r.allFailCount }
+func (r LoadStrikeRunResult) AllFailCount() int { return r.allFailCount }
+
 // FailedThresholds exposes the failed thresholds operation. Use this when interacting with the SDK through this surface.
 func (r LoadStrikeRunResult) FailedThresholds() int { return r.failedThresholds }
+
 // Thresholds exposes the thresholds operation. Use this when interacting with the SDK through this surface.
 func (r LoadStrikeRunResult) Thresholds() []LoadStrikeThresholdResult {
 	return append([]LoadStrikeThresholdResult(nil), r.thresholds...)
 }
+
 // ThresholdResults exposes the threshold results operation. Use this when interacting with the SDK through this surface.
 func (r LoadStrikeRunResult) ThresholdResults() []LoadStrikeThresholdResult {
 	return append([]LoadStrikeThresholdResult(nil), r.thresholdResults...)
 }
+
 // Metrics exposes the metrics operation. Use this when interacting with the SDK through this surface.
 func (r LoadStrikeRunResult) Metrics() []LoadStrikeMetricValue {
 	return append([]LoadStrikeMetricValue(nil), r.metrics...)
 }
+
 // ScenarioDurationsMS exposes the scenario durations ms operation. Use this when interacting with the SDK through this surface.
 func (r LoadStrikeRunResult) ScenarioDurationsMS() map[string]int64 {
 	return cloneInt64Map(r.scenarioDurationsMS)
 }
+
 // PluginsData exposes the plugins data operation. Use this when interacting with the SDK through this surface.
 func (r LoadStrikeRunResult) PluginsData() []LoadStrikePluginData {
 	return append([]LoadStrikePluginData(nil), r.pluginsData...)
 }
+
 // DisabledSinks exposes the disabled sinks operation. Use this when interacting with the SDK through this surface.
 func (r LoadStrikeRunResult) DisabledSinks() []string {
 	return append([]string(nil), r.disabledSinks...)
 }
+
 // SinkErrors exposes the sink errors operation. Use this when interacting with the SDK through this surface.
 func (r LoadStrikeRunResult) SinkErrors() []LoadStrikeSinkError {
 	return append([]LoadStrikeSinkError(nil), r.sinkErrors...)
 }
+
 // ReportFiles exposes the report files operation. Use this when interacting with the SDK through this surface.
 func (r LoadStrikeRunResult) ReportFiles() []string {
 	return append([]string(nil), r.reportFiles...)
 }
+
 // LogFiles exposes the log files operation. Use this when interacting with the SDK through this surface.
 func (r LoadStrikeRunResult) LogFiles() []string {
 	return append([]string(nil), r.logFiles...)
 }
+
 // PolicyErrors exposes the policy errors operation. Use this when interacting with the SDK through this surface.
 func (r LoadStrikeRunResult) PolicyErrors() []LoadStrikeRuntimePolicyError {
 	return append([]LoadStrikeRuntimePolicyError(nil), r.policyErrors...)
 }
+
+// GeneratorWarnings exposes structured generator and reporting warnings.
+func (r LoadStrikeRunResult) GeneratorWarnings() []LoadStrikeGeneratorWarning {
+	return append([]LoadStrikeGeneratorWarning(nil), r.generatorWarnings...)
+}
+
+// ObservationDeliveryStats exposes raw observation capture and delivery totals.
+func (r LoadStrikeRunResult) ObservationDeliveryStats() LoadStrikeObservationDeliveryStats {
+	return r.observationDeliveryStats
+}
+
+// ReportingComplete reports whether every configured raw observation stream
+// completed without buffer, queue, or delivery loss.
+func (r LoadStrikeRunResult) ReportingComplete() bool {
+	return r.reportingComplete
+}
+
 // CorrelationRows exposes the correlation rows operation. Use this when interacting with the SDK through this surface.
 func (r LoadStrikeRunResult) CorrelationRows() []map[string]any {
 	rows := make([]map[string]any, 0, len(r.correlationRows))
@@ -509,6 +651,7 @@ func (r LoadStrikeRunResult) CorrelationRows() []map[string]any {
 	}
 	return rows
 }
+
 // FailedCorrelationRows exposes the failed correlation rows operation. Use this when interacting with the SDK through this surface.
 func (r LoadStrikeRunResult) FailedCorrelationRows() []map[string]any {
 	rows := make([]map[string]any, 0, len(r.failedCorrelationRows))
@@ -570,15 +713,23 @@ func (r LoadStrikeRunResult) MarshalJSON() ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	decoded := map[string]any{}
+	decoded := map[string]json.RawMessage{}
 	if err := json.Unmarshal(body, &decoded); err != nil {
 		return nil, err
 	}
-	decoded["StartedUtc"] = r.StartedUtc()
-	decoded["CompletedUtc"] = r.CompletedUtc()
+	if r.startedUTC.IsZero() {
+		decoded["StartedUtc"] = json.RawMessage("null")
+	}
+	if r.completedUTC.IsZero() {
+		decoded["CompletedUtc"] = json.RawMessage("null")
+	}
 	delete(decoded, "Duration")
 	delete(decoded, "NodeType")
-	decoded["ScenarioDurationsMs"] = r.ScenarioDurationsMS()
+	scenarioDurationsMS, err := json.Marshal(r.ScenarioDurationsMS())
+	if err != nil {
+		return nil, err
+	}
+	decoded["ScenarioDurationsMs"] = scenarioDurationsMS
 	return json.Marshal(decoded)
 }
 

@@ -8,6 +8,8 @@ import (
 
 // contextState stores execution-wide settings for a configured runner.
 type contextState struct {
+	LoadEngineContractVersion        int
+	MaxInFlight                      int
 	ReportsEnabled                   bool
 	RestartIterationMaxAttempts      int
 	ReportingIntervalSeconds         float64
@@ -18,6 +20,8 @@ type contextState struct {
 	SessionID                        string
 	ClusterID                        string
 	AgentGroup                       string
+	AgentID                          string
+	ExpectedAgentIDs                 []string
 	NatsServerURL                    string
 	NodeType                         NodeType
 	AgentsCount                      int
@@ -47,6 +51,29 @@ type contextState struct {
 	configError                      error
 	agentIndex                       int
 	agentCount                       int
+}
+
+// UseLoadEngineV2 selects the smooth, bounded V2 scheduler.
+func (c *contextState) UseLoadEngineV2() *contextState {
+	if c != nil {
+		c.LoadEngineContractVersion = 2
+	}
+	return c
+}
+
+// WithMaxInFlight sets the process-wide V2 execution ceiling.
+func (c *contextState) WithMaxInFlight(maxInFlight int) *contextState {
+	if c == nil {
+		return c
+	}
+	if c.LoadEngineContractVersion != 2 {
+		panic("MaxInFlight is available only when Load Engine V2 is selected.")
+	}
+	if maxInFlight < 1 || maxInFlight > 1_000_000 {
+		panic("MaxInFlight must be an integer from 1 through 1000000.")
+	}
+	c.MaxInFlight = maxInFlight
+	return c
 }
 
 // WithRunnerKey records the runner key used for this run.
@@ -131,6 +158,35 @@ func (c *contextState) WithAgentGroup(agentGroup string) *contextState {
 	if c != nil {
 		c.requireNonBlank("agent group", agentGroup)
 		c.AgentGroup = agentGroup
+	}
+	return c
+}
+
+// WithAgentID sets the stable identity used by a remote Load Engine V2 agent.
+func (c *contextState) WithAgentID(agentID string) *contextState {
+	if c != nil {
+		c.requireNonBlank("agent id", agentID)
+		c.AgentID = agentID
+	}
+	return c
+}
+
+// WithExpectedAgentIDs sets the exact stable Load Engine V2 participant set.
+func (c *contextState) WithExpectedAgentIDs(agentIDs ...string) *contextState {
+	if c != nil {
+		if len(agentIDs) == 0 {
+			panic("At least one expected agent id is required.")
+		}
+		seen := map[string]struct{}{}
+		c.ExpectedAgentIDs = make([]string, 0, len(agentIDs))
+		for _, agentID := range agentIDs {
+			c.requireNonBlank("expected agent id", agentID)
+			if _, exists := seen[agentID]; exists {
+				panic("Expected agent ids must be unique.")
+			}
+			seen[agentID] = struct{}{}
+			c.ExpectedAgentIDs = append(c.ExpectedAgentIDs, agentID)
+		}
 	}
 	return c
 }
