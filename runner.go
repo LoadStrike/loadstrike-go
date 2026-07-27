@@ -20,6 +20,8 @@ func newRunnerState() *runnerState {
 		context: contextState{
 			ReportsEnabled:                  true,
 			RestartIterationMaxAttempts:     3,
+			SinkRetryCount:                  3,
+			SinkRetryBackoffMs:              250,
 			LicenseValidationTimeoutSeconds: defaultLicenseValidationTimeoutSeconds,
 			NodeType:                        NodeTypeSingleNode,
 			AgentsCount:                     1,

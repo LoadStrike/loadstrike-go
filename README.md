@@ -28,6 +28,8 @@ The Go SDK preserves the callback-style authoring model shown in the LoadStrike 
 
 Install the module, configure a valid runner key, and run workloads directly from Go code. The public Go module validates the runner key online before execution starts, so denied keys fail fast before the run begins.
 
+The wrapper also requires the current publisher-authenticated runtime manifest before it downloads or reuses its matching execution component. It verifies the LoadStrike publisher signature, exact release identity, download address, byte count, SHA-256 checksum, and validity window before launch. It does not accept an older unsigned format or launch an unverified component. Runtime integrity is separate from licensing: a verified cached component never bypasses the mandatory runner-key validation performed for every run.
+
 ## Public API Surface
 
 The public module matches the documented LoadStrike builder and context API.
@@ -114,11 +116,11 @@ func main() {
 
 `Run()` returns the full run result, including scenario metrics, generated report files, and sink status information.
 
-LoadStrike automatically obtains and verifies the exact execution component compatible with the installed SDK. Altered, expired, incomplete, or incompatible components are never executed; if a verified component cannot be obtained, the operation fails before test traffic starts.
+LoadStrike automatically obtains and verifies the exact execution component compatible with the installed SDK. Altered, expired, incomplete, unsigned, or incompatible components are never executed; if a publisher-authenticated component cannot be obtained, the operation fails before test traffic starts.
 
 ## Load Engine V2
 
-Call `UseLoadEngineV2()` explicitly for the versioned smooth-pacing and bounded-work contract. V2 spreads fixed-rate arrivals across their interval and uses one process-wide in-flight ceiling shared by scenarios and colocated logical agents. The default is 10,000; call `WithMaxInFlight(...)` after the V2 opt-in to override it with a value from 1 through 1,000,000.
+Call `UseLoadEngineV2()` explicitly for the versioned smooth-pacing and bounded-work contract. V2 runs registered scenarios concurrently, spreads fixed-rate arrivals across their interval, and uses one process-wide in-flight ceiling shared by those scenarios and colocated logical agents. Results remain ordered by scenario registration. The default ceiling is 10,000; call `WithMaxInFlight(...)` after the V2 opt-in to override it with a value from 1 through 1,000,000.
 
 The requested rate is offered scenario invocations per interval. Compare it with achieved starts, delivery percentage, scheduler lag, and transport throughput. If the generator is late or at capacity, the arrival is dropped and disclosed as a generator warning rather than counted as an application failure. One scenario invocation may contain several requests or Kafka records, while browser journeys require separate host-capacity planning.
 
@@ -132,7 +134,13 @@ Capacity evidence is hardware-specific. Follow the [Load Simulation guidance](ht
 
 Observation-capable reporting sinks receive one compact record for every scenario attempt, including retry attempts and nested steps. Retries share a logical iteration ID while keeping distinct attempt indexes and final-attempt markers. Warm-up and load phases, simulation and shard identity, timestamps, observed and reported latency, outcome, status code, and response size are included; reply messages, payloads, bodies, and headers are not.
 
+If a fail-mode runtime policy callback fails after an attempt begins, the stream receives one final failed observation with status `runtime_policy_error` before the run terminates. The observation does not include the callback error text.
+
 Records are buffered without delaying scenario callbacks and normally flush in compressed chunks every five seconds, bounded by 50,000 observations or 8 MiB. Buffer pressure, a single record that cannot fit a batch, and per-sink queue pressure drop reporting observations with explicit warnings; they do not turn a successful system-under-test response into an application failure. A completion marker is never sent ahead of an active sink write; a drain timeout is disclosed as incomplete reporting without falsely classifying that active write as dropped. Metric-only destinations disclose that they cannot retain arbitrary strings or nested steps.
+
+The public wrapper forwards `SinkRetryCount` and `SinkRetryBackoffMs` with the run plan. Every reporting-sink callback—including initialization, start, realtime statistics and metrics, final statistics and metrics, raw batches, completion markers, stop, and dispose—uses the same bounded policy. The defaults are three retries after the initial callback, using delays of 250 ms, 500 ms, and 1 second, and the retry count can be set from zero through 100. A recovered callback adds no final sink error or delivery-failed warning. Only an exhausted raw-observation delivery counts as sink observation loss; other exhausted callbacks are reported against that sink without failing the workload. Custom sinks have at-least-once delivery semantics and should deduplicate replay by stable batch or observation identity. Stop and dispose remain best-effort cleanup, and an exhausted stop callback does not prevent dispose. Sanitized nested error details stay in the local run log rather than generator warnings, portable results, portal payloads, or HTML reports.
+
+`StatsDReportingSink`, `DogStatsDReportingSink`, and `NetdataStatsDReportingSink` emit native UDP measurements for each captured attempt. Configure them with `StatsDReportingSinkOptions`: `Host` defaults to `127.0.0.1`, `Port` defaults to `8125`, and `Prefix` defaults to `loadstrike`; `Tags` adds static DogStatsD tags. Existing `EndpointURL` configuration remains supported as the destination.
 
 Portal reporting calculates cumulative p50, p75, p95, and p99 from all final load-phase outcomes received for each scenario and run. Separate successful and failed percentiles remain available for diagnosis. The SDK does not send SDK-calculated percentile fields as the authoritative portal or observation-capable sink result.
 

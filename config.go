@@ -16,6 +16,8 @@ type runtimeConfigSection struct {
 	TestSuite                   string `json:"TestSuite"`
 	TestName                    string `json:"TestName"`
 	RestartIterationMaxAttempts *int   `json:"RestartIterationMaxAttempts"`
+	SinkRetryCount              *int   `json:"SinkRetryCount"`
+	SinkRetryBackoffMs          *int   `json:"SinkRetryBackoffMs"`
 }
 
 // LoadConfig applies supported settings from a loadstrike JSON config file.
@@ -91,6 +93,12 @@ func applyRuntimeConfig(context *contextState, config runtimeConfigFile) {
 	if config.LoadStrike.RestartIterationMaxAttempts != nil && *config.LoadStrike.RestartIterationMaxAttempts >= 0 {
 		context.RestartIterationMaxAttempts = *config.LoadStrike.RestartIterationMaxAttempts
 	}
+	if config.LoadStrike.SinkRetryCount != nil && *config.LoadStrike.SinkRetryCount >= 0 {
+		context.SinkRetryCount = *config.LoadStrike.SinkRetryCount
+	}
+	if config.LoadStrike.SinkRetryBackoffMs != nil && *config.LoadStrike.SinkRetryBackoffMs >= 0 {
+		context.SinkRetryBackoffMs = *config.LoadStrike.SinkRetryBackoffMs
+	}
 }
 
 func applyRunArgs(context *contextState, args []string) error {
@@ -109,6 +117,16 @@ func applyRunArgs(context *contextState, args []string) error {
 			attempts, err := strconv.Atoi(value)
 			if err == nil && attempts >= 0 {
 				context.RestartIterationMaxAttempts = attempts
+			}
+		case "sinkretrycount":
+			retries, err := strconv.Atoi(value)
+			if err == nil && retries >= 0 {
+				context.SinkRetryCount = retries
+			}
+		case "sinkretrybackoffms":
+			backoffMs, err := strconv.Atoi(value)
+			if err == nil && backoffMs >= 0 {
+				context.SinkRetryBackoffMs = backoffMs
 			}
 		case "disablelicenseenforcement":
 			return errors.New("disable license enforcement has been removed and is no longer supported")

@@ -20,6 +20,8 @@ type runtimeContextPlan struct {
 	MaxInFlight                      int                        `json:"maxInFlight,omitempty"`
 	ReportsEnabled                   bool                       `json:"reportsEnabled"`
 	RestartIterationMaxAttempts      int                        `json:"restartIterationMaxAttempts,omitempty"`
+	SinkRetryCount                   int                        `json:"sinkRetryCount"`
+	SinkRetryBackoffMs               int                        `json:"sinkRetryBackoffMs"`
 	ReportingIntervalSeconds         float64                    `json:"reportingIntervalSeconds,omitempty"`
 	LicenseValidationTimeoutSeconds  float64                    `json:"licenseValidationTimeoutSeconds,omitempty"`
 	MinimumLogLevel                  string                     `json:"minimumLogLevel,omitempty"`
@@ -114,6 +116,8 @@ func newRuntimeContextPlan(context contextState) runtimeContextPlan {
 		MaxInFlight:                      context.MaxInFlight,
 		ReportsEnabled:                   context.ReportsEnabled,
 		RestartIterationMaxAttempts:      context.RestartIterationMaxAttempts,
+		SinkRetryCount:                   context.SinkRetryCount,
+		SinkRetryBackoffMs:               context.SinkRetryBackoffMs,
 		ReportingIntervalSeconds:         context.ReportingIntervalSeconds,
 		LicenseValidationTimeoutSeconds:  context.LicenseValidationTimeoutSeconds,
 		MinimumLogLevel:                  context.MinimumLogLevel,

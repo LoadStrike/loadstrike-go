@@ -1,6 +1,7 @@
 package loadstrike
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
@@ -10,7 +11,6 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strconv"
-	"strings"
 	"time"
 
 	"google.golang.org/grpc"
@@ -40,14 +40,16 @@ func runViaPrivateRuntime(contextState *contextState, registry *runtimeCallbackR
 		return runResult{}, err
 	}
 
-	runtimePath, err := newRuntimeArtifactResolver(runtimeResolverConfig{
+	runtimeExecution, err := newRuntimeArtifactResolver(runtimeResolverConfig{
 		Version: RuntimeArtifactVersion(),
 		GOOS:    runtimeGOOS(),
 		GOARCH:  runtimeGOARCH(),
-	}).resolveRuntimePath(contextState.RunnerKey)
+	}).resolveRuntimeExecution(contextState.RunnerKey)
 	if err != nil {
 		return runResult{}, err
 	}
+	defer runtimeExecution.Close()
+	runtimePath := runtimeExecution.Path
 
 	tempDir, err := os.MkdirTemp("", "loadstrike-runtime-*")
 	if err != nil {
@@ -67,7 +69,6 @@ func runViaPrivateRuntime(contextState *contextState, registry *runtimeCallbackR
 
 	// runtimePath is returned only after authenticated-manifest and SHA-256 verification;
 	// exec.Command receives it and the remaining values as argv without invoking a shell.
-	// nosemgrep: vulnerability-tools.semgrep-rules.go.lang.security.audit.dangerous-exec-command
 	cmd := exec.Command(
 		runtimePath,
 		"--host", host.address,
@@ -78,12 +79,19 @@ func runViaPrivateRuntime(contextState *contextState, registry *runtimeCallbackR
 	)
 	output, err := cmd.CombinedOutput()
 	if err != nil {
-		message := strings.TrimSpace(string(output))
+		message := sanitizeRuntimeDiagnostic(string(output))
+		executionMessage := sanitizeRuntimeDiagnostic(err.Error())
+		clearAutopilotRunnerKeyBytes(output)
 		if message == "" {
-			return runResult{}, fmt.Errorf("loadstrike runtime failed: %w", err)
+			return runResult{}, fmt.Errorf("loadstrike runtime failed: %s", executionMessage)
 		}
-		return runResult{}, fmt.Errorf("loadstrike runtime failed: %w: %s", err, message)
+		return runResult{}, fmt.Errorf(
+			"loadstrike runtime failed: %s: %s",
+			executionMessage,
+			message,
+		)
 	}
+	clearAutopilotRunnerKeyBytes(output)
 
 	resultBytes, err := os.ReadFile(resultPath)
 	if err != nil {
@@ -102,14 +110,16 @@ func runViaPrivateRuntime(contextState *contextState, registry *runtimeCallbackR
 }
 
 func runAutopilotViaPrivateRuntime(request LoadStrikeAutopilotRequest) (LoadStrikeAutopilotResult, error) {
-	runtimePath, err := newRuntimeArtifactResolver(runtimeResolverConfig{
+	runtimeExecution, err := newRuntimeArtifactResolver(runtimeResolverConfig{
 		Version: RuntimeArtifactVersion(),
 		GOOS:    runtimeGOOS(),
 		GOARCH:  runtimeGOARCH(),
-	}).resolveRuntimePath(request.Options.RunnerKey)
+	}).resolveRuntimeExecution(request.Options.RunnerKey)
 	if err != nil {
 		return LoadStrikeAutopilotResult{}, err
 	}
+	defer runtimeExecution.Close()
+	runtimePath := runtimeExecution.Path
 
 	tempDir, err := os.MkdirTemp("", "loadstrike-autopilot-*")
 	if err != nil {
@@ -127,26 +137,23 @@ func runAutopilotViaPrivateRuntime(request LoadStrikeAutopilotRequest) (LoadStri
 		return LoadStrikeAutopilotResult{}, fmt.Errorf("write autopilot request: %w", err)
 	}
 
-	// runtimePath is returned only after authenticated-manifest and SHA-256 verification;
-	// exec.Command receives it and the remaining values as argv without invoking a shell.
-	// nosemgrep: vulnerability-tools.semgrep-rules.go.lang.security.audit.dangerous-exec-command
-	cmd := exec.Command(
+	cmd, runnerKeyBytes := newAutopilotRuntimeCommand(
 		runtimePath,
-		"--autopilot-input", requestPath,
-		"--autopilot-output", resultPath,
-		"--autopilot-runner-key", request.Options.RunnerKey,
-		"--autopilot-license-validation-timeout-seconds", strconv.FormatFloat(request.Options.LicenseValidationTimeoutSeconds, 'f', -1, 64),
-		"--sdk-version", RuntimeArtifactVersion(),
-		"--protocol", strconv.Itoa(RuntimeProtocolVersion()),
+		requestPath,
+		resultPath,
+		request.Options.RunnerKey,
+		request.Options.LicenseValidationTimeoutSeconds,
 	)
+	defer clearAutopilotRunnerKeyBytes(runnerKeyBytes)
 	output, err := cmd.CombinedOutput()
 	if err != nil {
-		message := strings.TrimSpace(string(output))
-		if message == "" {
-			return LoadStrikeAutopilotResult{}, fmt.Errorf("loadstrike autopilot runtime failed: %w", err)
-		}
-		return LoadStrikeAutopilotResult{}, fmt.Errorf("loadstrike autopilot runtime failed: %w: %s", err, message)
+		return LoadStrikeAutopilotResult{}, newAutopilotRuntimeFailure(
+			err,
+			output,
+			request.Options.RunnerKey,
+		)
 	}
+	clearAutopilotRunnerKeyBytes(output)
 
 	resultBytes, err := os.ReadFile(resultPath)
 	if err != nil {
@@ -158,6 +165,58 @@ func runAutopilotViaPrivateRuntime(request LoadStrikeAutopilotRequest) (LoadStri
 		return LoadStrikeAutopilotResult{}, fmt.Errorf("decode autopilot result: %w", err)
 	}
 	return result, nil
+}
+
+func newAutopilotRuntimeCommand(
+	runtimePath string,
+	requestPath string,
+	resultPath string,
+	runnerKey string,
+	licenseValidationTimeoutSeconds float64,
+) (*exec.Cmd, []byte) {
+	runnerKeyBytes := []byte(runnerKey)
+
+	// runtimePath is returned only after authenticated-manifest and SHA-256 verification;
+	// exec.Command receives it and non-secret values as argv without invoking a shell.
+	// The runner key is a bounded one-shot stdin payload and never a process argument.
+	cmd := exec.Command(
+		runtimePath,
+		"--autopilot-input", requestPath,
+		"--autopilot-output", resultPath,
+		"--autopilot-runner-key-stdin",
+		"--autopilot-license-validation-timeout-seconds", strconv.FormatFloat(licenseValidationTimeoutSeconds, 'f', -1, 64),
+		"--sdk-version", RuntimeArtifactVersion(),
+		"--protocol", strconv.Itoa(RuntimeProtocolVersion()),
+	)
+	cmd.Stdin = bytes.NewReader(runnerKeyBytes)
+	return cmd, runnerKeyBytes
+}
+
+func newAutopilotRuntimeFailure(executionError error, output []byte, runnerKey string) error {
+	message := sanitizeRuntimeDiagnostic(string(output), runnerKey)
+	clearAutopilotRunnerKeyBytes(output)
+
+	executionMessage := "unknown child-process failure"
+	if executionError != nil {
+		executionMessage = sanitizeRuntimeDiagnostic(
+			executionError.Error(),
+			runnerKey,
+		)
+	}
+	if message == "" {
+		return fmt.Errorf("loadstrike autopilot runtime failed: %s", executionMessage)
+	}
+	return fmt.Errorf(
+		"loadstrike autopilot runtime failed: %s: %s",
+		executionMessage,
+		message,
+	)
+}
+
+func clearAutopilotRunnerKeyBytes(content []byte) {
+	for index := range content {
+		content[index] = 0
+	}
 }
 
 type runtimeHostHandle struct {

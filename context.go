@@ -12,6 +12,8 @@ type contextState struct {
 	MaxInFlight                      int
 	ReportsEnabled                   bool
 	RestartIterationMaxAttempts      int
+	SinkRetryCount                   int
+	SinkRetryBackoffMs               int
 	ReportingIntervalSeconds         float64
 	LicenseValidationTimeoutSeconds  float64
 	MinimumLogLevel                  string

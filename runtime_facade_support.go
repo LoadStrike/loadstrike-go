@@ -245,7 +245,13 @@ type HTTPReportingSinkOptions struct {
 	EndpointURL    string            `json:"EndpointUrl,omitempty"`
 	Headers        map[string]string `json:"Headers,omitempty"`
 	TimeoutSeconds int               `json:"TimeoutSeconds,omitempty"`
+	Host           string            `json:"Host,omitempty"`
+	Port           int               `json:"Port,omitempty"`
+	Prefix         string            `json:"Prefix,omitempty"`
+	Tags           map[string]string `json:"Tags,omitempty"`
 }
+
+type StatsDReportingSinkOptions = HTTPReportingSinkOptions
 
 type KafkaReportingSinkOptions struct {
 	Topic   string                            `json:"Topic,omitempty"`
