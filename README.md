@@ -130,6 +130,8 @@ Go V2 global sharding is currently supported for the in-process local-developmen
 
 Capacity evidence is hardware-specific. Follow the [Load Simulation guidance](https://loadstrike.com/docs/library-options/load-simulation) to size a safe run, distinguish offered from achieved load, and interpret the repeatable `scheduler-noop/2` profile. A benchmark artifact is evidence for that exact host and configuration, not a general 300,000-RPS claim.
 
+Generated HTML reports are self-contained offline files with responsive SVG charts. They provide exact-value pointer, touch, and keyboard tooltips; outcome legends; zoom, pan, and reset; an accessible expanded view; chart-title search; and compact, comfortable, or spacious grids. Successful and failed latency stay separate, while All appears only when the run has a genuine combined distribution. When temporal history is available, cumulative requests, achieved request rate, bytes, and per-scenario latency include the final partial reporting interval. Correlation charts retain scenario, destination, status, GatherBy selector/value, and all available percentile points without averaging groups.
+
 ## Raw Iteration Reporting
 
 Observation-capable reporting sinks receive one compact record for every scenario attempt, including retry attempts and nested steps. Retries share a logical iteration ID while keeping distinct attempt indexes and final-attempt markers. Warm-up and load phases, simulation and shard identity, timestamps, observed and reported latency, outcome, status code, and response size are included; reply messages, payloads, bodies, and headers are not.
