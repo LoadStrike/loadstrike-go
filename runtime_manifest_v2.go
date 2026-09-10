@@ -39,7 +39,7 @@ const (
 	runtimeManifestWrapperModule      = "loadstrike.com/sdk/go"
 	runtimeManifestAttestationMedia   = "application/vnd.dev.sigstore.bundle+json;version=0.3"
 	runtimeManifestPublisherKeyPrefix = "sha256:"
-	runtimeManifestV02Toolchain       = "go1.26.5"
+	runtimeManifestV02Toolchain       = "go1.26.8"
 )
 
 var (
