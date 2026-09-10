@@ -6,7 +6,7 @@ Use it to define scenarios, execute named steps, apply load simulations and thre
 
 ## Requirements
 
-- Go 1.24 or later
+- Go 1.26.5 or later
 
 ## Install
 
@@ -15,6 +15,18 @@ go get loadstrike.com/sdk/go
 ```
 
 `loadstrike.com/sdk/go` is the public vanity module path served by the LoadStrike website and backed by the public `loadstrike/loadstrike-go` repository, so `go get` and pkg.go.dev resolve the same package surface.
+
+## v0.2.0 Breaking Migration
+
+Before running workloads with v0.2.0:
+
+1. Install Go 1.26.5 or later.
+2. Run `go get loadstrike.com/sdk/go@v0.2.0`.
+3. Configure a valid runner key and run the workload; normal license validation remains required.
+
+After v0.2.0 is published, v0.1.x will remain on security-only support for at least 90 days. The v0.2.0 protocol and capability changes will not be backported to v0.1.x. The retained v0.1.30401 release already requires Go 1.26.5 or later, and the v0.2.0 release notes will state the deprecation window before v0.2.0 is promoted.
+
+This source change prepares the migration documentation only; it does not publish v0.2.0.
 
 Import the package in your Go workload code with:
 
@@ -26,9 +38,7 @@ import loadstrike "loadstrike.com/sdk/go"
 
 The Go SDK preserves the callback-style authoring model shown in the LoadStrike documentation while keeping the installation and execution workflow simple for application teams.
 
-Install the module, configure a valid runner key, and run workloads directly from Go code. The public Go module validates the runner key online before execution starts, so denied keys fail fast before the run begins.
-
-The wrapper also requires the current publisher-authenticated runtime manifest before it downloads or reuses its matching execution component. It verifies the LoadStrike publisher signature, exact release identity, download address, byte count, SHA-256 checksum, and validity window before launch. It does not accept an older unsigned format or launch an unverified component. Runtime integrity is separate from licensing: a verified cached component never bypasses the mandatory runner-key validation performed for every run.
+Install the module, configure a valid runner key, and run workloads directly from Go code. Normal license validation remains required. An invalid runner key or incompatible supported setup makes `Run()` fail before scenario callbacks or workload traffic starts.
 
 ## Public API Surface
 
@@ -36,9 +46,21 @@ The public module matches the documented LoadStrike builder and context API.
 
 Use `Create()` or `NewRunner()` to start a builder, reuse contexts with `BuildContext()` and `ConfigureContext(...)`, load JSON settings with `LoadConfig(...)` and `LoadInfraConfig(...)`, and control local report output with `WithReportFolder(...)`, `WithReportFileName(...)`, `WithReportFormats(...)`, and `WithReportingInterval(...)`.
 
-Targeted execution, realtime console metrics, and validation timing are available through `WithTargetScenarios(...)`, `WithDisplayConsoleMetrics(...)`, and `WithLicenseValidationTimeout(...)`.
+Targeted execution and validation timing are available through `WithTargetScenarios(...)` and `WithLicenseValidationTimeout(...)`.
+
+`WithDisplayConsoleMetrics(...)` and `DisplayConsoleMetrics` are accepted for configuration compatibility, but this Go release does not emit live console snapshots. Use reporting sinks for live delivery and the final run result for completed metrics. `WithScenarioCompletionTimeout(...)` and `ScenarioCompletionTimeoutMs` are also accepted and validated against licensed limits, but this Go release does not apply them as a graceful-shutdown deadline.
 
 New load-test templates can explicitly select the versioned scheduler with `UseLoadEngineV2()` and tune its process-wide in-flight ceiling with `WithMaxInFlight(...)`.
+
+## JSON Configuration
+
+`LoadConfig(path)` applies supported settings from the `LoadStrike` object at the point where it appears in the fluent call chain. A later fluent call or later `LoadConfig(...)` call wins for the same setting.
+
+The supported `LoadStrike` keys are `TestSuite`, `TestName`, `SessionId`, `ReportFolder`, `ReportFileName`, `ReportFormats`, `ReportingIntervalMs`, `ScenarioCompletionTimeoutMs`, `ClusterCommandTimeoutMs`, `NodeType`, `ClusterId`, `AgentGroup`, `AgentId`, `ExpectedAgentIds`, `AgentsCount`, `NatsServerUrl`, `TargetScenarios`, `AgentTargetScenarios`, `CoordinatorTargetScenarios`, `MinimumLogLevel`, `DisplayConsoleMetrics`, `EnableLocalDevCluster`, `RestartIterationMaxAttempts`, `SinkRetryCount`, `SinkRetryBackoffMs`, `RunnerKey`, `WithoutReports`, `UseLoadEngineV2`, and `MaxInFlight`. `LicenseValidation` supports the nested `TimeoutMs` key.
+
+Configuration key matching is case-insensitive. List settings accept either a comma-delimited string or a JSON string array. Boolean settings accept JSON booleans or the strings `true` and `false`. `NodeType` accepts `Single`, `SingleNode`, `Coordinator`, `Agent`, or the values `0`, `1`, and `2`; `ReportFormats` accepts `html`, `txt`, `csv`, `md`, and `markdown`. Other JSON values remain available to callbacks through `CustomSettings()`, but they do not configure LoadStrike behavior. License-validation bypass and service-address settings are not supported.
+
+Current Go cluster limits apply even when a key is accepted: a workload cannot call `Run()` directly with `NodeType` set to `Agent`; local child identities come from `ExpectedAgentIds` when supplied or from their generated indexes, rather than the coordinator's `AgentId`. Load Engine V1 applies `TargetScenarios` and `AgentTargetScenarios` but not `CoordinatorTargetScenarios`. In clustered Go V2, use a coordinator with `EnableLocalDevCluster` set to `true` and a reachable `NatsServerUrl`; both role-specific target lists are rejected. Single-node V2 does not require cluster settings.
 
 ## What You Can Build
 
@@ -52,6 +74,8 @@ New load-test templates can explicitly select the versioned scheduler with `UseL
 - supported observability sink integrations on Enterprise
 
 Built-in transport coverage includes HTTP, Kafka, RabbitMQ, NATS, Redis Streams, Azure Event Hubs, Push Diffusion, and delegate-based custom streams.
+
+gRPC endpoints require a matching `Produce` or `Consume` delegate. Without one, initialization fails with `Native gRPC execution is not available in this SDK version. Provide the endpoint Produce/Consume delegate instead.` WebSocket supports native or delegate-backed Produce and Consume; a matching delegate takes precedence over `NativeClient`.
 
 Kafka OAuthBearer authentication accepts either a direct token through `KafkaSASLOAuthBearerOptions.AccessToken`, or `OAuthBearerTokenEndpointURL` together with `ClientId` and `ClientSecret` in `AdditionalSettings`. Endpoint mode obtains tokens through the configured client-credentials flow; optional `Scope`, `Audience`, and `GrantType` settings are included in the token request.
 
@@ -116,7 +140,45 @@ func main() {
 
 `Run()` returns the full run result, including scenario metrics, generated report files, and sink status information.
 
-LoadStrike automatically obtains and verifies the exact execution component compatible with the installed SDK. Altered, expired, incomplete, unsigned, or incompatible components are never executed; if a publisher-authenticated component cannot be obtained, the operation fails before test traffic starts.
+## Logging
+
+The Go SDK writes runtime logs to one generated text file per runtime node or process by default, using `Information` as the minimum level. A single-node run produces one file; a clustered run can return coordinator and agent-indexed files. Files are created in the configured report folder, or in `./reports` when no report folder is set, and their paths are returned in `LoadStrikeRunResult.LogFiles()`. LoadStrike closes them before `Run()` returns.
+
+Use `WithMinimumLogLevel(...)` with `LogEventLevelVerbose`, `LogEventLevelDebug`, `LogEventLevelInformation`, `LogEventLevelWarning`, `LogEventLevelError`, or `LogEventLevelFatal`. The selected level and all higher-priority events are written. Names are matched case-insensitively, while aliases, numbers, and blank values are rejected.
+
+`WithLoggerConfig(...)` accepts a factory that returns a `LoggerConfiguration` with the exact keys `target`, `format`, `path`, and `minimumLevel`:
+
+- `target` accepts `file`, `stdout`, or `stderr`. An explicit `file` target requires a nonblank `path`; a `path` without `target` remains a supported shorthand for file output. Do not supply `path` with `stdout` or `stderr`.
+- `format` accepts `text` or `json` and defaults to `text`. JSON output contains one object per line with exactly `timestampUtc`, `level`, and `message`.
+- `minimumLevel` accepts the same six levels. An explicit `WithMinimumLogLevel(...)` call wins over this map entry regardless of call order; otherwise the map entry applies, then the `Information` default.
+
+Use an explicit `path` only for single-node runs. Local clustered nodes currently reuse the same explicit path and can truncate or contend for it; omit `path` in clustered runs so LoadStrike creates node-specific files.
+
+```go
+loadstrike.RegisterScenarios(scenario).
+	WithLoggerConfig(func() loadstrike.LoggerConfiguration {
+		return loadstrike.LoggerConfiguration{
+			"target":       "stdout",
+			"format":       "json",
+			"minimumLevel": "Verbose",
+		}
+	}).
+	WithMinimumLogLevel(loadstrike.LogEventLevelWarning). // Warning wins over Verbose above.
+	WithRunnerKey("rkl_your_runner_key").
+	Run()
+```
+
+Unknown keys, unsupported values, wrong value types, blank paths, directory paths, and missing explicit file paths fail before test traffic starts. File destinations are created or truncated for the run and closed before it returns. `stdout` and `stderr` destinations are not closed by LoadStrike, do not add a `LogFiles()` entry, and receive their configured output after workload execution stops. This includes the logger's final failure record when execution fails. Known runner-key text is redacted from that output. A failed `Run()` also panics with a bounded, sanitized diagnostic that does not duplicate the selected logger stream.
+
+## Callback Outcomes
+
+Runtime-policy callbacks keep their public outcomes. `ShouldRunScenario(...) == false` skips that scenario with zero workload requests. A policy error is recorded in `PolicyErrors()`; continue mode permits the scenario or step to continue, while fail mode ends the run. `BeforeScenario`, `AfterScenario`, `BeforeStep`, and `AfterStep` run at their named lifecycle points.
+
+Scenario init and clean callbacks receive the configured custom and global settings plus the current test, node, scenario, and partition metadata through `LoadStrikeScenarioInitContext`. Step callbacks receive the same metadata through `LoadStrikeScenarioContext`, plus `ScenarioInstanceData()`. That map persists across step callbacks for one scenario instance, remains isolated from other instances, and is released after lifecycle cleanup. Successful callback log records enter the selected logger once and obey its target, format, and minimum level.
+
+`StopScenario(name, reason)` stops the remaining iterations for the named scenario, while `StopCurrentTest(reason)` requests a run-wide stop. Active scenario callbacks can observe cancellation through `ScenarioCancellationToken()`. For existing-traffic correlation, cancelling the `context.Context` supplied to `ForDuration(...)` ends observation early.
+
+`KafkaReportingSinkOptions.Publish(topic, payload)` is an application-provided reporting publisher callback, not a native Kafka client. LoadStrike passes the configured topic and reporting JSON to it under the reporting retry policy. A recovered delivery leaves no final sink error; exhausted delivery is reported against the Kafka sink without changing successful workload request, OK, or failure counts.
 
 ## Load Engine V2
 
@@ -140,9 +202,15 @@ If a fail-mode runtime policy callback fails after an attempt begins, the stream
 
 Records are buffered without delaying scenario callbacks and normally flush in compressed chunks every five seconds, bounded by 50,000 observations or 8 MiB. Buffer pressure, a single record that cannot fit a batch, and per-sink queue pressure drop reporting observations with explicit warnings; they do not turn a successful system-under-test response into an application failure. A completion marker is never sent ahead of an active sink write; a drain timeout is disclosed as incomplete reporting without falsely classifying that active write as dropped. Metric-only destinations disclose that they cannot retain arbitrary strings or nested steps.
 
-The public wrapper forwards `SinkRetryCount` and `SinkRetryBackoffMs` with the run plan. Every reporting-sink callback—including initialization, start, realtime statistics and metrics, final statistics and metrics, raw batches, completion markers, stop, and dispose—uses the same bounded policy. The defaults are three retries after the initial callback, using delays of 250 ms, 500 ms, and 1 second, and the retry count can be set from zero through 100. A recovered callback adds no final sink error or delivery-failed warning. Only an exhausted raw-observation delivery counts as sink observation loss; other exhausted callbacks are reported against that sink without failing the workload. Custom sinks have at-least-once delivery semantics and should deduplicate replay by stable batch or observation identity. Stop and dispose remain best-effort cleanup, and an exhausted stop callback does not prevent dispose. Sanitized nested error details stay in the local run log rather than generator warnings, portable results, portal payloads, or HTML reports.
+Set `SinkRetryCount` and `SinkRetryBackoffMs` on the run configuration to control the reporting retry policy. Every reporting-sink callback—including initialization, start, realtime statistics and metrics, final statistics and metrics, raw batches, completion markers, stop, and dispose—uses the same bounded policy. The defaults are three retries after the initial callback, using delays of 250 ms, 500 ms, and 1 second, and the retry count can be set from zero through 100. A recovered callback adds no final sink error or delivery-failed warning. Only an exhausted raw-observation delivery counts as sink observation loss; other exhausted callbacks are reported against that sink without failing the workload. Custom sinks may receive the same delivery more than once and should handle repeats safely. Stop and dispose remain best-effort cleanup, and an exhausted stop callback does not prevent dispose. Sanitized nested error details stay in the local run log rather than generator warnings, portable results, portal payloads, or HTML reports.
 
-`StatsDReportingSink`, `DogStatsDReportingSink`, and `NetdataStatsDReportingSink` emit native UDP measurements for each captured attempt. Configure them with `StatsDReportingSinkOptions`: `Host` defaults to `127.0.0.1`, `Port` defaults to `8125`, and `Prefix` defaults to `loadstrike`; `Tags` adds static DogStatsD tags. Existing `EndpointURL` configuration remains supported as the destination.
+`StatsDReportingSink`, `DogStatsDReportingSink`, and `NetdataStatsDReportingSink` emit native UDP measurements for each captured attempt. Configure them with `StatsDReportingSinkOptions`: `Host` defaults to `127.0.0.1`, `Port` defaults to `8125`, and `Prefix` defaults to `loadstrike`; `Tags` adds static DogStatsD tags. Existing `EndpointURL` configuration remains supported as the destination. A successful UDP send confirms only that the local UDP stack accepted the datagram, because the receiver does not acknowledge delivery.
+
+Prometheus Remote Write, CloudWatch, Dynatrace, and New Relic publish their provider-specific metric protocols and apply the shared [metric input limits](../README.md#metric-input-limits). Configure their `HTTPReportingSinkOptions` with `EndpointURL` plus the relevant `BearerToken`, CloudWatch namespace/region/credentials, `APIToken`, or `LicenseKey`; `StaticTags` and `StaticDimensions` add validated attributes. Credential values are redacted from diagnostics.
+
+Elasticsearch and OpenSearch send one JSON document per reporting call to the caller-supplied `EndpointURL`. Supply a complete endpoint suitable for document ingestion, including the intended index and document route. The application owns that routing and any required authorization headers.
+
+`GenericWebhook` intentionally sends generic LoadStrike JSON rather than a vendor metric body. Use it only with a receiver that accepts that contract. When migrating an old generic metrics URL, choose the matching direct vendor sink if the receiver expects a vendor protocol.
 
 Portal reporting calculates cumulative p50, p75, p95, and p99 from all final load-phase outcomes received for each scenario and run. Separate successful and failed percentiles remain available for diagnosis. The SDK does not send SDK-calculated percentile fields as the authoritative portal or observation-capable sink result.
 

@@ -79,6 +79,11 @@ func WithLoggerConfig(context LoadStrikeContext, config LoggerConfigurationFacto
 	return requireLoadStrikeContext(context).WithLoggerConfig(config)
 }
 
+// WithGlobalCustomSettings supplies JSON-compatible values available to every scenario callback.
+func WithGlobalCustomSettings(context LoadStrikeContext, settings map[string]any) LoadStrikeContext {
+	return requireLoadStrikeContext(context).WithGlobalCustomSettings(settings)
+}
+
 // WithMinimumLogLevel configures minimum log level. Use this when you want to set minimum log level on the current SDK object.
 func WithMinimumLogLevel(context LoadStrikeContext, level LogEventLevel) LoadStrikeContext {
 	return requireLoadStrikeContext(context).WithMinimumLogLevel(level)

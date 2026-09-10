@@ -2,6 +2,8 @@ package loadstrike
 
 import (
 	"fmt"
+	"os"
+	"reflect"
 	"strings"
 	"time"
 )
@@ -44,6 +46,8 @@ type contextState struct {
 	ReportFormats                    []ReportFormat
 	TestSuite                        string
 	TestName                         string
+	CustomSettings                   map[string]any
+	GlobalCustomSettings             map[string]any
 	testInfo                         testInfo
 	nodeInfo                         nodeInfo
 	Logger                           *LoadStrikeLogger
@@ -134,6 +138,20 @@ func (c *contextState) WithLoggerConfig(config LoggerConfigurationFactory) *cont
 	if c != nil {
 		c.LoggerConfig = normalizeLoggerConfiguration(config)
 	}
+	return c
+}
+
+// WithGlobalCustomSettings supplies JSON-compatible values available to every scenario callback.
+func (c *contextState) WithGlobalCustomSettings(settings map[string]any) *contextState {
+	if c == nil {
+		return c
+	}
+	cloned, err := cloneJSONCompatibleSettings(settings)
+	if err != nil {
+		c.recordConfigError(fmt.Errorf("global custom settings: %w", err))
+		return c
+	}
+	c.GlobalCustomSettings = cloned
 	return c
 }
 
@@ -295,13 +313,21 @@ func (c *contextState) WithReportingSinks(reportingSinks ...LoadStrikeReportingS
 			c.recordConfigError(fmt.Errorf("at least one reporting sink should be provided"))
 		}
 		for _, sink := range reportingSinks {
-			if sink == nil {
+			if isNilReportingSink(sink) {
 				c.recordConfigError(fmt.Errorf("reporting sink collection cannot contain nil values"))
 			}
 		}
 		c.ReportingSinks = append([]LoadStrikeReportingSink(nil), reportingSinks...)
 	}
 	return c
+}
+
+func isNilReportingSink(sink LoadStrikeReportingSink) bool {
+	if sink == nil {
+		return true
+	}
+	value := reflect.ValueOf(sink)
+	return value.Kind() == reflect.Pointer && value.IsNil()
 }
 
 // WithPortalReporting records the managed LoadStrike portal reporting sink.
@@ -553,15 +579,39 @@ func durationArgumentSeconds(name string, value any) float64 {
 }
 
 func normalizeLogEventLevel(level any) string {
+	var value string
 	switch typed := level.(type) {
 	case nil:
-		return ""
+		panic("minimum log level must be provided")
 	case string:
-		return strings.TrimSpace(typed)
+		value = typed
 	case LogEventLevel:
-		return strings.TrimSpace(string(typed))
+		value = string(typed)
 	default:
-		return strings.TrimSpace(fmt.Sprint(typed))
+		panic("minimum log level must be Verbose, Debug, Information, Warning, Error, or Fatal")
+	}
+	if canonical, valid := canonicalLogEventLevel(value); valid {
+		return canonical
+	}
+	panic("minimum log level must be Verbose, Debug, Information, Warning, Error, or Fatal")
+}
+
+func canonicalLogEventLevel(value string) (string, bool) {
+	switch strings.ToLower(strings.TrimSpace(value)) {
+	case "verbose":
+		return string(LogEventLevelVerbose), true
+	case "debug":
+		return string(LogEventLevelDebug), true
+	case "information":
+		return string(LogEventLevelInformation), true
+	case "warning":
+		return string(LogEventLevelWarning), true
+	case "error":
+		return string(LogEventLevelError), true
+	case "fatal":
+		return string(LogEventLevelFatal), true
+	default:
+		return "", false
 	}
 }
 
@@ -569,12 +619,95 @@ func normalizeLoggerConfiguration(config LoggerConfigurationFactory) LoggerConfi
 	if config == nil {
 		panic("logger config must be provided")
 	}
-	typed := config()
-	cloned := make(LoggerConfiguration, len(typed))
-	for key, value := range typed {
-		cloned[key] = value
+	source := config()
+	for key := range source {
+		switch key {
+		case "target", "format", "path", "minimumLevel":
+		default:
+			panic("logger config contains an unsupported option")
+		}
 	}
-	return cloned
+
+	cloned := make(LoggerConfiguration, len(source))
+
+	if rawTarget, found := source["target"]; found {
+		target, ok := rawTarget.(string)
+		if !ok {
+			panic("logger config target must be a string")
+		}
+		switch strings.ToLower(strings.TrimSpace(target)) {
+		case "stdout":
+			cloned["target"] = "stdout"
+		case "stderr":
+			cloned["target"] = "stderr"
+		case "file":
+			cloned["target"] = "file"
+		default:
+			panic("logger config target must be stdout, stderr, or file")
+		}
+	}
+
+	if rawFormat, found := source["format"]; found {
+		format, ok := rawFormat.(string)
+		if !ok {
+			panic("logger config format must be a string")
+		}
+		switch strings.ToLower(strings.TrimSpace(format)) {
+		case "json":
+			cloned["format"] = "json"
+		case "text":
+			cloned["format"] = "text"
+		default:
+			panic("logger config format must be json or text")
+		}
+	}
+
+	if rawPath, found := source["path"]; found {
+		path, ok := rawPath.(string)
+		if !ok {
+			panic("logger config path must be a nonblank string")
+		}
+		path = strings.TrimSpace(path)
+		if path == "" {
+			panic("logger config path must be a nonblank string")
+		}
+		pathInfo, err := os.Stat(path)
+		if err == nil && pathInfo.IsDir() {
+			panic("logger config path must identify a file")
+		}
+		if err != nil && !os.IsNotExist(err) {
+			panic("logger config path could not be inspected")
+		}
+		cloned["path"] = path
+	}
+
+	if rawMinimum, found := source["minimumLevel"]; found {
+		var minimum string
+		switch typed := rawMinimum.(type) {
+		case string:
+			minimum = typed
+		case LogEventLevel:
+			minimum = string(typed)
+		default:
+			panic("logger config minimumLevel must be a string")
+		}
+		canonical, valid := canonicalLogEventLevel(minimum)
+		if !valid {
+			panic("logger config minimumLevel must be Verbose, Debug, Information, Warning, Error, or Fatal")
+		}
+		cloned["minimumLevel"] = canonical
+	}
+
+	target, _ := cloned["target"].(string)
+	_, hasPath := cloned["path"]
+	if target == "file" && !hasPath {
+		panic("logger config target file requires a path")
+	}
+	if hasPath && (target == "stdout" || target == "stderr") {
+		panic("logger config path is available only for the file target")
+	}
+
+	return LoggerConfiguration(cloned)
 }
 
 func isWorkerPluginLike(value any) bool {

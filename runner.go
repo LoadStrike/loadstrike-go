@@ -27,6 +27,8 @@ func newRunnerState() *runnerState {
 			AgentsCount:                     1,
 			RuntimePolicyErrorMode:          RuntimePolicyErrorModeFail,
 			ConsoleMetricsEnabled:           true,
+			CustomSettings:                  map[string]any{},
+			GlobalCustomSettings:            map[string]any{},
 			ReportFormats: []ReportFormat{
 				ReportFormatHTML,
 				ReportFormatTXT,
@@ -147,6 +149,12 @@ func (r *runnerState) WithMinimumLogLevel(level LogEventLevel) *runnerState {
 // WithLoggerConfig records logger configuration overrides for this run.
 func (r *runnerState) WithLoggerConfig(config LoggerConfigurationFactory) *runnerState {
 	r.context.WithLoggerConfig(config)
+	return r
+}
+
+// WithGlobalCustomSettings supplies JSON-compatible values available to every scenario callback.
+func (r *runnerState) WithGlobalCustomSettings(settings map[string]any) *runnerState {
+	r.context.WithGlobalCustomSettings(settings)
 	return r
 }
 
@@ -288,6 +296,8 @@ func (r *runnerState) Configure(configure contextConfigurator) *runnerState {
 			r.scenarios = append([]scenarioDefinition(nil), native.scenarios...)
 		}
 		native.scenarios = nil
+		native.CustomSettings = cloneKnownJSONCompatibleSettings(native.CustomSettings)
+		native.GlobalCustomSettings = cloneKnownJSONCompatibleSettings(native.GlobalCustomSettings)
 		r.context = native
 	}
 	return r
@@ -300,6 +310,8 @@ func (r *runnerState) ConfigureContext(context LoadStrikeContext) *runnerState {
 		r.scenarios = append([]scenarioDefinition(nil), native.scenarios...)
 	}
 	native.scenarios = nil
+	native.CustomSettings = cloneKnownJSONCompatibleSettings(native.CustomSettings)
+	native.GlobalCustomSettings = cloneKnownJSONCompatibleSettings(native.GlobalCustomSettings)
 	r.context = native
 	return r
 }
@@ -341,6 +353,8 @@ func (r *runnerState) BuildContext() *contextState {
 	}
 
 	context := r.context
+	context.CustomSettings = cloneKnownJSONCompatibleSettings(r.context.CustomSettings)
+	context.GlobalCustomSettings = cloneKnownJSONCompatibleSettings(r.context.GlobalCustomSettings)
 	context.scenarios = append([]scenarioDefinition(nil), r.scenarios...)
 	context.trafficMixes = append([]trafficMixDefinition(nil), r.trafficMixes...)
 	return &context

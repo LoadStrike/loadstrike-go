@@ -39,6 +39,7 @@ const (
 	runtimeManifestWrapperModule      = "loadstrike.com/sdk/go"
 	runtimeManifestAttestationMedia   = "application/vnd.dev.sigstore.bundle+json;version=0.3"
 	runtimeManifestPublisherKeyPrefix = "sha256:"
+	runtimeManifestV02Toolchain       = "go1.26.5"
 )
 
 var (
@@ -580,6 +581,13 @@ func validateRuntimeManifestV2Claims(
 	if len(claims.Toolchain) > 32 ||
 		!runtimeCanonicalToolchainPattern.MatchString(claims.Toolchain) {
 		return errors.New("runtime manifest toolchain is not canonical")
+	}
+	if strings.HasPrefix(claims.RuntimeVersion, "v0.2.") &&
+		claims.Toolchain != runtimeManifestV02Toolchain {
+		return errors.New(
+			"runtime manifest toolchain mismatch: v0.2 artifacts require " +
+				runtimeManifestV02Toolchain,
+		)
 	}
 	if !runtimeCanonicalAttestationPattern.MatchString(
 		claims.AttestationDigest,

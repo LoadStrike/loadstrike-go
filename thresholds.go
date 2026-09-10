@@ -16,6 +16,29 @@ type ThresholdSpec struct {
 	metricPredicate        func(metricStats) bool
 }
 
+type runtimeThresholdPlan struct {
+	Scope                  string  `json:"Scope"`
+	StepName               string  `json:"StepName,omitempty"`
+	Field                  string  `json:"Field"`
+	Operator               string  `json:"Operator"`
+	Value                  float64 `json:"Value,omitempty"`
+	AbortWhenErrorCount    int     `json:"AbortWhenErrorCount,omitempty"`
+	StartCheckAfterSeconds float64 `json:"StartCheckAfterSeconds,omitempty"`
+	PredicateCallbackURL   string  `json:"predicateCallbackUrl,omitempty"`
+}
+
+func newRuntimeThresholdPlan(spec ThresholdSpec) runtimeThresholdPlan {
+	return runtimeThresholdPlan{
+		Scope:                  spec.Scope,
+		StepName:               spec.StepName,
+		Field:                  spec.Field,
+		Operator:               spec.Operator,
+		Value:                  spec.Value,
+		AbortWhenErrorCount:    spec.AbortWhenErrorCount,
+		StartCheckAfterSeconds: spec.StartCheckAfterSeconds,
+	}
+}
+
 // ScenarioThreshold creates a scenario-scope threshold.
 func ScenarioThreshold(args ...any) ThresholdSpec {
 	if len(args) > 0 {

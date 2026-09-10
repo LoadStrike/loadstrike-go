@@ -117,6 +117,12 @@ func (c loadStrikeContext) WithLoggerConfig(config LoggerConfigurationFactory) L
 	return c
 }
 
+// Supplies JSON-compatible values available to every scenario callback.
+func (c loadStrikeContext) WithGlobalCustomSettings(settings map[string]any) LoadStrikeContext {
+	requireNativeContext(c.nativeValue()).WithGlobalCustomSettings(settings)
+	return c
+}
+
 // Sets the session identifier for this run.
 // Use this when downstream logs, reports, or external systems need a stable session id.
 func (c loadStrikeContext) WithSessionId(sessionID string) LoadStrikeContext {
@@ -518,6 +524,12 @@ func (r loadStrikeRunner) WithRuntimePolicies(runtimePolicies ...LoadStrikeRunti
 // Use this when policy errors should either fail fast or be tolerated.
 func (r loadStrikeRunner) WithRuntimePolicyErrorMode(mode RuntimePolicyErrorMode) LoadStrikeRunner {
 	requireRunner(r.nativeValue()).WithRuntimePolicyErrorMode(mode)
+	return r
+}
+
+// Supplies JSON-compatible values available to every scenario callback.
+func (r loadStrikeRunner) WithGlobalCustomSettings(settings map[string]any) LoadStrikeRunner {
+	requireRunner(r.nativeValue()).WithGlobalCustomSettings(settings)
 	return r
 }
 

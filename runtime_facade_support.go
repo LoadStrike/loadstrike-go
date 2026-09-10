@@ -242,13 +242,23 @@ type OTELCollectorSinkOptions struct {
 }
 
 type HTTPReportingSinkOptions struct {
-	EndpointURL    string            `json:"EndpointUrl,omitempty"`
-	Headers        map[string]string `json:"Headers,omitempty"`
-	TimeoutSeconds int               `json:"TimeoutSeconds,omitempty"`
-	Host           string            `json:"Host,omitempty"`
-	Port           int               `json:"Port,omitempty"`
-	Prefix         string            `json:"Prefix,omitempty"`
-	Tags           map[string]string `json:"Tags,omitempty"`
+	EndpointURL      string            `json:"EndpointUrl,omitempty"`
+	Headers          map[string]string `json:"Headers,omitempty"`
+	TimeoutSeconds   int               `json:"TimeoutSeconds,omitempty"`
+	Host             string            `json:"Host,omitempty"`
+	Port             int               `json:"Port,omitempty"`
+	Prefix           string            `json:"Prefix,omitempty"`
+	Tags             map[string]string `json:"Tags,omitempty"`
+	BearerToken      string            `json:"BearerToken,omitempty"`
+	Namespace        string            `json:"Namespace,omitempty"`
+	Region           string            `json:"Region,omitempty"`
+	AccessKeyID      string            `json:"AccessKeyId,omitempty"`
+	SecretAccessKey  string            `json:"SecretAccessKey,omitempty"`
+	SessionToken     string            `json:"SessionToken,omitempty"`
+	APIToken         string            `json:"ApiToken,omitempty"`
+	LicenseKey       string            `json:"LicenseKey,omitempty"`
+	StaticTags       map[string]string `json:"StaticTags,omitempty"`
+	StaticDimensions map[string]string `json:"StaticDimensions,omitempty"`
 }
 
 type StatsDReportingSinkOptions = HTTPReportingSinkOptions

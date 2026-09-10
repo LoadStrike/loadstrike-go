@@ -3,13 +3,18 @@ package loadstrike
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"reflect"
+	"slices"
 	"strings"
 )
+
+const nativeGRPCUnsupportedMessage = "Native gRPC execution is not available in this SDK version. Provide the endpoint Produce/Consume delegate instead."
 
 type runtimePlan struct {
 	SDKVersion      string                  `json:"sdkVersion"`
 	ProtocolVersion int                     `json:"protocolVersion"`
+	Capabilities    []string                `json:"capabilities"`
 	Context         runtimeContextPlan      `json:"context"`
 	Scenarios       []runtimeScenarioPlan   `json:"scenarios"`
 	TrafficMixes    []runtimeTrafficMixPlan `json:"trafficMixes,omitempty"`
@@ -52,12 +57,15 @@ type runtimeContextPlan struct {
 	ReportFormats                    []ReportFormat             `json:"reportFormats,omitempty"`
 	TestSuite                        string                     `json:"testSuite,omitempty"`
 	TestName                         string                     `json:"testName,omitempty"`
+	CustomSettings                   map[string]any             `json:"customSettings,omitempty"`
+	GlobalCustomSettings             map[string]any             `json:"globalCustomSettings,omitempty"`
 }
 
 type runtimeReportingSinkPlan struct {
 	Kind                     string                         `json:"kind"`
 	Name                     string                         `json:"name,omitempty"`
 	CallbackURL              string                         `json:"callbackUrl,omitempty"`
+	PublishCallbackURL       string                         `json:"publishCallbackUrl,omitempty"`
 	SupportsIterationBatches bool                           `json:"supportsIterationBatches,omitempty"`
 	InfluxDB                 *InfluxDBSinkOptions           `json:"influxDb,omitempty"`
 	TimescaleDB              *TimescaleDBSinkOptions        `json:"timescaleDb,omitempty"`
@@ -92,7 +100,7 @@ type runtimeScenarioPlan struct {
 	WarmUpDurationSeconds   float64                        `json:"warmUpDurationSeconds,omitempty"`
 	WarmUpDisabled          bool                           `json:"warmUpDisabled,omitempty"`
 	LoadSimulations         []LoadSimulation               `json:"loadSimulations,omitempty"`
-	Thresholds              []ThresholdSpec                `json:"thresholds,omitempty"`
+	Thresholds              []runtimeThresholdPlan         `json:"thresholds,omitempty"`
 	Tracking                *TrackingConfigurationSpec     `json:"tracking,omitempty"`
 	AutopilotHTTP           *LoadStrikeAutopilotHTTPReplay `json:"autopilotHttp,omitempty"`
 	InternalLicenseFeatures []string                       `json:"internalLicenseFeatures,omitempty"`
@@ -120,8 +128,8 @@ func newRuntimeContextPlan(context contextState) runtimeContextPlan {
 		SinkRetryBackoffMs:               context.SinkRetryBackoffMs,
 		ReportingIntervalSeconds:         context.ReportingIntervalSeconds,
 		LicenseValidationTimeoutSeconds:  context.LicenseValidationTimeoutSeconds,
-		MinimumLogLevel:                  context.MinimumLogLevel,
-		LoggerConfig:                     cloneAnyMap(context.LoggerConfig),
+		MinimumLogLevel:                  resolvedMinimumLogLevel(context),
+		LoggerConfig:                     cloneKnownJSONCompatibleSettings(context.LoggerConfig),
 		RunnerKey:                        context.RunnerKey,
 		SessionID:                        context.SessionID,
 		ClusterID:                        context.ClusterID,
@@ -145,7 +153,19 @@ func newRuntimeContextPlan(context contextState) runtimeContextPlan {
 		ReportFormats:                    append([]ReportFormat(nil), context.ReportFormats...),
 		TestSuite:                        context.TestSuite,
 		TestName:                         context.TestName,
+		CustomSettings:                   cloneKnownJSONCompatibleSettings(context.CustomSettings),
+		GlobalCustomSettings:             cloneKnownJSONCompatibleSettings(context.GlobalCustomSettings),
 	}
+}
+
+func resolvedMinimumLogLevel(context contextState) string {
+	if strings.TrimSpace(context.MinimumLogLevel) != "" {
+		return context.MinimumLogLevel
+	}
+	if configured, ok := context.LoggerConfig["minimumLevel"].(string); ok && strings.TrimSpace(configured) != "" {
+		return configured
+	}
+	return string(LogEventLevelInformation)
 }
 
 func buildRuntimePlan(
@@ -162,10 +182,23 @@ func buildRuntimePlan(
 	if httpHost == nil {
 		return runtimePlan{}, errors.New("runtime http host must be provided")
 	}
+	for _, scenario := range context.scenarios {
+		if err := validateRuntimePlanCapabilities(scenario.Tracking); err != nil {
+			return runtimePlan{}, err
+		}
+	}
+	for _, trafficMix := range context.trafficMixes {
+		for _, share := range trafficMix.ScenarioMix {
+			if err := validateRuntimePlanCapabilities(share.Scenario.Tracking); err != nil {
+				return runtimePlan{}, err
+			}
+		}
+	}
 
 	plan := runtimePlan{
 		SDKVersion:      RuntimeArtifactVersion(),
 		ProtocolVersion: RuntimeProtocolVersion(),
+		Capabilities:    runtimeBridgeCapabilities(),
 		Context:         newRuntimeContextPlan(*context),
 		Scenarios:       make([]runtimeScenarioPlan, 0, len(context.scenarios)),
 		TrafficMixes:    make([]runtimeTrafficMixPlan, 0, len(context.trafficMixes)),
@@ -202,6 +235,59 @@ func buildRuntimePlan(
 	return plan, nil
 }
 
+func (plan runtimePlan) validateForLaunch() error {
+	if plan.ProtocolVersion != RuntimeProtocolVersion() {
+		return fmt.Errorf(
+			"runtime bridge protocol mismatch: expected %d, got %d",
+			RuntimeProtocolVersion(),
+			plan.ProtocolVersion,
+		)
+	}
+	return validateRuntimeCapabilities(plan.Capabilities)
+}
+
+func validateRuntimeCapabilities(actual []string) error {
+	expected := runtimeBridgeCapabilities()
+	if !slices.IsSorted(actual) {
+		return errors.New("runtime bridge capabilities must be sorted")
+	}
+	if duplicate := firstDuplicateRuntimeCapability(actual); duplicate != "" {
+		return fmt.Errorf("runtime bridge capability mismatch: duplicate %s", duplicate)
+	}
+	if missing := firstRuntimeCapabilitySetDifference(expected, actual); missing != "" {
+		return fmt.Errorf("runtime bridge capability mismatch: missing %s", missing)
+	}
+	if unexpected := firstRuntimeCapabilitySetDifference(actual, expected); unexpected != "" {
+		return fmt.Errorf("runtime bridge capability mismatch: unexpected %s", unexpected)
+	}
+	if !slices.Equal(actual, expected) {
+		return errors.New("runtime bridge capability mismatch")
+	}
+	return nil
+}
+
+func firstDuplicateRuntimeCapability(values []string) string {
+	for index := 1; index < len(values); index++ {
+		if values[index] == values[index-1] {
+			return values[index]
+		}
+	}
+	return ""
+}
+
+func firstRuntimeCapabilitySetDifference(left, right []string) string {
+	rightSet := make(map[string]struct{}, len(right))
+	for _, value := range right {
+		rightSet[value] = struct{}{}
+	}
+	for _, value := range left {
+		if _, found := rightSet[value]; !found {
+			return value
+		}
+	}
+	return ""
+}
+
 func buildRuntimeScenarioPlan(
 	scenario scenarioDefinition,
 	registry *runtimeCallbackRegistry,
@@ -215,7 +301,7 @@ func buildRuntimeScenarioPlan(
 		WarmUpDurationSeconds:   scenario.WarmUpDurationSeconds,
 		WarmUpDisabled:          scenario.WarmUpDisabled,
 		LoadSimulations:         append([]LoadSimulation(nil), scenario.LoadSimulations...),
-		Thresholds:              append([]ThresholdSpec(nil), scenario.Thresholds...),
+		Thresholds:              buildRuntimeThresholdPlans(scenario.Thresholds, registry, httpHost),
 		AutopilotHTTP:           cloneAutopilotHTTPReplay(scenario.AutopilotHTTP),
 		InternalLicenseFeatures: append([]string(nil), scenario.InternalLicenseFeatures...),
 		DeclaredStepNames:       append([]string(nil), scenario.DeclaredStepNames...),
@@ -235,6 +321,26 @@ func buildRuntimeScenarioPlan(
 		item.Tracking = cloneTrackingConfigurationWithCallbackURLs(scenario.Tracking, registry, httpHost)
 	}
 	return item
+}
+
+func buildRuntimeThresholdPlans(
+	thresholds []ThresholdSpec,
+	registry *runtimeCallbackRegistry,
+	httpHost *runtimeHTTPHostHandle,
+) []runtimeThresholdPlan {
+	if len(thresholds) == 0 {
+		return nil
+	}
+
+	result := make([]runtimeThresholdPlan, 0, len(thresholds))
+	for _, threshold := range thresholds {
+		plan := newRuntimeThresholdPlan(threshold)
+		if id, ok := registry.registerThreshold(threshold); ok {
+			plan.PredicateCallbackURL = httpHost.thresholdCallbackURL(id)
+		}
+		result = append(result, plan)
+	}
+	return result
 }
 
 type runtimeContextExtensionPlan struct {
@@ -273,8 +379,11 @@ func buildRuntimeContextExtensions(
 	}
 
 	for _, sink := range context.ReportingSinks {
-		if sink == nil {
-			continue
+		if isNilReportingSink(sink) {
+			return runtimeContextExtensionPlan{}, errors.New("reporting sink collection cannot contain nil values")
+		}
+		if err := validateContainmentReportingSink(sink); err != nil {
+			return runtimeContextExtensionPlan{}, err
 		}
 		plan, err := buildRuntimeReportingSinkPlan(sink, registry, httpHost)
 		if err != nil {
@@ -284,6 +393,80 @@ func buildRuntimeContextExtensions(
 	}
 
 	return result, nil
+}
+
+func validateContainmentCapabilities(tracking *TrackingConfigurationSpec) error {
+	return validatePlanCapabilities(tracking, false)
+}
+
+func validateRuntimePlanCapabilities(tracking *TrackingConfigurationSpec) error {
+	return validatePlanCapabilities(tracking, true)
+}
+
+func validatePlanCapabilities(tracking *TrackingConfigurationSpec, allowNativeWebSocket bool) error {
+	if tracking == nil {
+		return nil
+	}
+
+	for _, endpoint := range []*EndpointSpec{tracking.Source, tracking.Destination} {
+		if endpoint == nil {
+			continue
+		}
+		mode := strings.TrimSpace(endpoint.Mode)
+		switch strings.ToLower(strings.TrimSpace(endpoint.Kind)) {
+		case "grpc":
+			if endpoint.Grpc == nil || endpoint.Grpc.NativeClient == nil {
+				continue
+			}
+			if strings.EqualFold(mode, "Produce") && endpoint.Grpc.Produce == nil && strings.TrimSpace(endpoint.Grpc.ProduceCallbackURL) == "" {
+				return errors.New(nativeGRPCUnsupportedMessage)
+			}
+			if strings.EqualFold(mode, "Consume") && endpoint.Grpc.Consume == nil && strings.TrimSpace(endpoint.Grpc.ConsumeCallbackURL) == "" {
+				return errors.New(nativeGRPCUnsupportedMessage)
+			}
+		case "websocket":
+			if allowNativeWebSocket {
+				continue
+			}
+			if endpoint.WebSocket == nil || endpoint.WebSocket.NativeClient == nil {
+				continue
+			}
+			if strings.EqualFold(mode, "Produce") && endpoint.WebSocket.Produce == nil && strings.TrimSpace(endpoint.WebSocket.ProduceCallbackURL) == "" {
+				return errors.New("Native WebSocket execution is not available in this release. Configure callback-backed Produce instead.")
+			}
+			if strings.EqualFold(mode, "Consume") && endpoint.WebSocket.Consume == nil && strings.TrimSpace(endpoint.WebSocket.ConsumeCallbackURL) == "" {
+				return errors.New("Native WebSocket execution is not available in this release. Configure callback-backed Consume instead.")
+			}
+		}
+	}
+
+	return nil
+}
+
+func validateContainmentReportingSink(sink LoadStrikeReportingSink) error {
+	if isNilReportingSink(sink) {
+		return errors.New("reporting sink collection cannot contain nil values")
+	}
+	return nil
+}
+
+func validateContainmentReportingSinkKind(kind string) error {
+	var sinkName string
+	switch strings.ToLower(strings.ReplaceAll(strings.TrimSpace(kind), "-", "")) {
+	case "prometheusremotewrite":
+		sinkName = "PrometheusRemoteWriteReportingSink"
+	case "cloudwatch":
+		sinkName = "CloudWatchReportingSink"
+	case "dynatrace":
+		sinkName = "DynatraceReportingSink"
+	case "newrelic":
+		sinkName = "NewRelicReportingSink"
+	}
+	if sinkName == "" {
+		return nil
+	}
+
+	return errors.New(sinkName + " direct delivery is temporarily unavailable because this SDK cannot emit the required vendor protocol. Use GenericWebhookReportingSink only with a gateway that converts the payload, or provide a custom reporting sink.")
 }
 
 func buildRuntimeReportingSinkPlan(
@@ -387,12 +570,10 @@ func buildRuntimeReportingSinkPlan(
 			return runtimeReportingSinkPlan{Kind: "opensearch", Name: typed.SinkName(), HTTP: &options}, nil
 		}
 	case KafkaReportingSink:
-		options := typed.Options
-		return runtimeReportingSinkPlan{Kind: "kafka", Name: typed.SinkName(), Kafka: &options}, nil
+		return buildRuntimeKafkaReportingSinkPlan(typed.SinkName(), typed.Options, registry, httpHost), nil
 	case *KafkaReportingSink:
 		if typed != nil {
-			options := typed.Options
-			return runtimeReportingSinkPlan{Kind: "kafka", Name: typed.SinkName(), Kafka: &options}, nil
+			return buildRuntimeKafkaReportingSinkPlan(typed.SinkName(), typed.Options, registry, httpHost), nil
 		}
 	case StatsDReportingSink:
 		options := typed.Options
@@ -453,6 +634,26 @@ func buildRuntimeReportingSinkPlan(
 	}, nil
 }
 
+func buildRuntimeKafkaReportingSinkPlan(
+	name string,
+	options KafkaReportingSinkOptions,
+	registry *runtimeCallbackRegistry,
+	httpHost *runtimeHTTPHostHandle,
+) runtimeReportingSinkPlan {
+	plan := runtimeReportingSinkPlan{
+		Kind: "kafka",
+		Name: name,
+		Kafka: &KafkaReportingSinkOptions{
+			Topic: options.Topic,
+		},
+	}
+	if options.Publish != nil {
+		id := registry.registerReportingPublisher(options.Publish)
+		plan.PublishCallbackURL = httpHost.reportingPublishCallbackURL(id)
+	}
+	return plan
+}
+
 func implementsIterationBatchSink(sink LoadStrikeReportingSink) bool {
 	if sink == nil {
 		return false
@@ -480,6 +681,12 @@ func cloneTrackingConfigurationWithCallbackURLs(
 		return source
 	}
 
+	if source.ObservationCancellationContext != nil {
+		id := registry.registerObservationCancellation(source.ObservationCancellationContext)
+		if id != "" {
+			cloned.ObservationCancellationCallbackURL = httpHost.observationCancellationCallbackURL(id)
+		}
+	}
 	cloned.Source = cloneEndpointSpecWithCallbackURLs(source.Source, cloned.Source, registry, httpHost)
 	cloned.Destination = cloneEndpointSpecWithCallbackURLs(source.Destination, cloned.Destination, registry, httpHost)
 	return &cloned

@@ -34,7 +34,7 @@ type IConfiguration struct {
 }
 
 func newIConfiguration(values map[string]any) IConfiguration {
-	return IConfiguration{values: values}
+	return IConfiguration{values: cloneKnownJSONCompatibleSettings(values)}
 }
 
 // Get exposes the get operation. Use this when interacting with the SDK through this surface.
@@ -42,7 +42,7 @@ func (c IConfiguration) Get(key string) any {
 	if c.values == nil {
 		return nil
 	}
-	return c.values[key]
+	return cloneKnownJSONCompatibleSettings(c.values)[key]
 }
 
 // Lookup exposes the lookup operation. Use this when interacting with the SDK through this surface.
@@ -50,7 +50,7 @@ func (c IConfiguration) Lookup(key string) (any, bool) {
 	if c.values == nil {
 		return nil, false
 	}
-	value, ok := c.values[key]
+	value, ok := cloneKnownJSONCompatibleSettings(c.values)[key]
 	return value, ok
 }
 
@@ -61,7 +61,7 @@ func (c IConfiguration) Len() int {
 
 // Values exposes the values operation. Use this when interacting with the SDK through this surface.
 func (c IConfiguration) Values() map[string]any {
-	return cloneAnyMap(c.values)
+	return cloneKnownJSONCompatibleSettings(c.values)
 }
 
 func (c IConfiguration) nativeValue() map[string]any {
@@ -629,6 +629,22 @@ func (c loadStrikeScenarioContext) Logger() ILogger {
 	return c.native.Logger
 }
 
+// CustomSettings returns the run configuration document supplied to this callback.
+func (c loadStrikeScenarioContext) CustomSettings() IConfiguration {
+	if c.native == nil {
+		return IConfiguration{}
+	}
+	return c.native.CustomSettings
+}
+
+// GlobalCustomSettings returns settings supplied explicitly for all callbacks in the run.
+func (c loadStrikeScenarioContext) GlobalCustomSettings() IConfiguration {
+	if c.native == nil {
+		return IConfiguration{}
+	}
+	return c.native.GlobalCustomSettings
+}
+
 // NodeInfo exposes the node info operation. Use this when interacting with the SDK through this surface.
 func (c loadStrikeScenarioContext) NodeInfo() LoadStrikeNodeInfo {
 	if c.native == nil {
@@ -659,6 +675,14 @@ func (c loadStrikeScenarioContext) ScenarioInfo() LoadStrikeScenarioInfo {
 		return LoadStrikeScenarioInfo{}
 	}
 	return c.native.ScenarioInfo
+}
+
+// ScenarioPartition returns the authoritative partition assigned by the runtime.
+func (c loadStrikeScenarioContext) ScenarioPartition() LoadStrikeScenarioPartition {
+	if c.native == nil {
+		return LoadStrikeScenarioPartition{}
+	}
+	return newLoadStrikeScenarioPartition(c.native.Partition)
 }
 
 // ScenarioInstanceData exposes the scenario instance data operation. Use this when interacting with the SDK through this surface.

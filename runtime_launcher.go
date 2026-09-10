@@ -6,11 +6,13 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"net"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"time"
 
 	"google.golang.org/grpc"
@@ -21,6 +23,20 @@ import (
 var (
 	errMissingRuntimeOut = errors.New("runtime did not produce a run result")
 )
+
+const (
+	runtimeCommandDiagnosticBytes = 32 * 1024
+	runtimeCommandCopyBufferBytes = 32 * 1024
+	runtimeCommandRedaction       = "[REDACTED]"
+)
+
+type runtimeCommandOutputOptions struct {
+	spoolDirectory    string
+	loggerTarget      string
+	runnerKey         string
+	stdoutDestination io.Writer
+	stderrDestination io.Writer
+}
 
 func runViaPrivateRuntime(contextState *contextState, registry *runtimeCallbackRegistry) (runResult, error) {
 	host, err := startRuntimeHostServer(registry)
@@ -37,6 +53,9 @@ func runViaPrivateRuntime(contextState *contextState, registry *runtimeCallbackR
 
 	plan, err := buildRuntimePlan(contextState, registry, httpHost)
 	if err != nil {
+		return runResult{}, err
+	}
+	if err := plan.validateForLaunch(); err != nil {
 		return runResult{}, err
 	}
 
@@ -77,19 +96,15 @@ func runViaPrivateRuntime(contextState *contextState, registry *runtimeCallbackR
 		"--sdk-version", RuntimeArtifactVersion(),
 		"--protocol", strconv.Itoa(RuntimeProtocolVersion()),
 	)
-	output, err := cmd.CombinedOutput()
+	output, err := executeRuntimeCommand(cmd, runtimeCommandOutputOptions{
+		spoolDirectory:    tempDir,
+		loggerTarget:      runtimeLoggerTarget(plan.Context.LoggerConfig),
+		runnerKey:         contextState.RunnerKey,
+		stdoutDestination: os.Stdout,
+		stderrDestination: os.Stderr,
+	})
 	if err != nil {
-		message := sanitizeRuntimeDiagnostic(string(output))
-		executionMessage := sanitizeRuntimeDiagnostic(err.Error())
-		clearAutopilotRunnerKeyBytes(output)
-		if message == "" {
-			return runResult{}, fmt.Errorf("loadstrike runtime failed: %s", executionMessage)
-		}
-		return runResult{}, fmt.Errorf(
-			"loadstrike runtime failed: %s: %s",
-			executionMessage,
-			message,
-		)
+		return runResult{}, newRuntimeFailure(err, output, contextState.RunnerKey)
 	}
 	clearAutopilotRunnerKeyBytes(output)
 
@@ -107,6 +122,268 @@ func runViaPrivateRuntime(contextState *contextState, registry *runtimeCallbackR
 	}
 
 	return result.toNative(), nil
+}
+
+func executeRuntimeCommand(cmd *exec.Cmd, options runtimeCommandOutputOptions) ([]byte, error) {
+	stdoutSpool, err := os.CreateTemp(options.spoolDirectory, "runtime-stdout-*.log")
+	if err != nil {
+		return nil, fmt.Errorf("create runtime stdout spool: %w", err)
+	}
+	stdoutPath := stdoutSpool.Name()
+	defer os.Remove(stdoutPath)
+	defer stdoutSpool.Close()
+
+	stderrSpool, err := os.CreateTemp(options.spoolDirectory, "runtime-stderr-*.log")
+	if err != nil {
+		return nil, fmt.Errorf("create runtime stderr spool: %w", err)
+	}
+	stderrPath := stderrSpool.Name()
+	defer os.Remove(stderrPath)
+	defer stderrSpool.Close()
+
+	cmd.Stdout = stdoutSpool
+	cmd.Stderr = stderrSpool
+	executionErr := cmd.Run()
+	stdoutCloseErr := stdoutSpool.Close()
+	stderrCloseErr := stderrSpool.Close()
+
+	if executionErr != nil {
+		if stdoutCloseErr != nil || stderrCloseErr != nil {
+			return nil, executionErr
+		}
+		diagnostic := readRuntimeCommandDiagnostic(options.loggerTarget, stdoutPath, stderrPath, options.runnerKey)
+		if forwardErr := forwardRuntimeCommandLoggerOutput(options, stdoutPath, stderrPath); forwardErr != nil {
+			executionErr = errors.Join(executionErr, forwardErr)
+		}
+		return diagnostic, executionErr
+	}
+	if stdoutCloseErr != nil {
+		return nil, fmt.Errorf("close runtime stdout spool: %w", stdoutCloseErr)
+	}
+	if stderrCloseErr != nil {
+		return nil, fmt.Errorf("close runtime stderr spool: %w", stderrCloseErr)
+	}
+
+	if err := forwardRuntimeCommandLoggerOutput(options, stdoutPath, stderrPath); err != nil {
+		return nil, err
+	}
+	return nil, nil
+}
+
+func forwardRuntimeCommandLoggerOutput(
+	options runtimeCommandOutputOptions,
+	stdoutPath string,
+	stderrPath string,
+) error {
+	switch strings.ToLower(strings.TrimSpace(options.loggerTarget)) {
+	case "stdout":
+		if options.stdoutDestination == nil {
+			return errors.New("runtime stdout destination must be provided")
+		}
+		if err := copyRuntimeCommandSpool(stdoutPath, options.stdoutDestination, options.runnerKey); err != nil {
+			return fmt.Errorf("forward runtime stdout: %w", err)
+		}
+	case "stderr":
+		if options.stderrDestination == nil {
+			return errors.New("runtime stderr destination must be provided")
+		}
+		if err := copyRuntimeCommandSpool(stderrPath, options.stderrDestination, options.runnerKey); err != nil {
+			return fmt.Errorf("forward runtime stderr: %w", err)
+		}
+	}
+	return nil
+}
+
+func runtimeLoggerTarget(config map[string]any) string {
+	target, _ := config["target"].(string)
+	return strings.ToLower(strings.TrimSpace(target))
+}
+
+func copyRuntimeCommandSpool(path string, destination io.Writer, runnerKey string) error {
+	spool, err := os.Open(path)
+	if err != nil {
+		return err
+	}
+	defer spool.Close()
+	return copyRuntimeCommandOutput(spool, destination, runnerKey)
+}
+
+func copyRuntimeCommandOutput(source io.Reader, destination io.Writer, runnerKey string) error {
+	if runnerKey == "" {
+		buffer := make([]byte, runtimeCommandCopyBufferBytes)
+		_, err := io.CopyBuffer(destination, source, buffer)
+		return err
+	}
+
+	secret := []byte(runnerKey)
+	replacement := []byte(runtimeCommandRedaction)
+	buffer := make([]byte, runtimeCommandCopyBufferBytes)
+	pending := make([]byte, 0, runtimeCommandCopyBufferBytes+len(secret))
+	defer func() {
+		clearAutopilotRunnerKeyBytes(secret)
+		clearAutopilotRunnerKeyBytes(buffer)
+		if cap(pending) > 0 {
+			clearAutopilotRunnerKeyBytes(pending[:cap(pending)])
+		}
+	}()
+
+	for {
+		count, readErr := source.Read(buffer)
+		if count > 0 {
+			pending = append(pending, buffer[:count]...)
+			flushBefore := len(pending) - (len(secret) - 1)
+			if flushBefore > 0 {
+				var writeErr error
+				pending, writeErr = writeRuntimeCommandRedactedPrefix(
+					destination,
+					pending,
+					secret,
+					replacement,
+					flushBefore,
+				)
+				if writeErr != nil {
+					return writeErr
+				}
+			}
+		}
+		if errors.Is(readErr, io.EOF) {
+			break
+		}
+		if readErr != nil {
+			return readErr
+		}
+	}
+
+	_, err := writeRuntimeCommandRedactedPrefix(
+		destination,
+		pending,
+		secret,
+		replacement,
+		len(pending),
+	)
+	return err
+}
+
+func writeRuntimeCommandRedactedPrefix(
+	destination io.Writer,
+	pending []byte,
+	secret []byte,
+	replacement []byte,
+	flushBefore int,
+) ([]byte, error) {
+	consumed := 0
+	for consumed < flushBefore {
+		relativeMatch := bytes.Index(pending[consumed:], secret)
+		if relativeMatch < 0 || consumed+relativeMatch >= flushBefore {
+			if err := writeRuntimeCommandBytes(destination, pending[consumed:flushBefore]); err != nil {
+				return pending, err
+			}
+			consumed = flushBefore
+			break
+		}
+
+		match := consumed + relativeMatch
+		if err := writeRuntimeCommandBytes(destination, pending[consumed:match]); err != nil {
+			return pending, err
+		}
+		if err := writeRuntimeCommandBytes(destination, replacement); err != nil {
+			return pending, err
+		}
+		consumed = match + len(secret)
+	}
+
+	remaining := append(pending[:0], pending[consumed:]...)
+	return remaining, nil
+}
+
+func writeRuntimeCommandBytes(destination io.Writer, content []byte) error {
+	for len(content) > 0 {
+		written, err := destination.Write(content)
+		if written > 0 {
+			content = content[written:]
+		}
+		if err != nil {
+			return err
+		}
+		if written == 0 {
+			return io.ErrShortWrite
+		}
+	}
+	return nil
+}
+
+func readRuntimeCommandDiagnostic(loggerTarget, stdoutPath, stderrPath, runnerKey string) []byte {
+	switch strings.ToLower(strings.TrimSpace(loggerTarget)) {
+	case "stdout":
+		return readRuntimeCommandSpoolTail(stderrPath, runnerKey)
+	case "stderr":
+		return readRuntimeCommandSpoolTail(stdoutPath, runnerKey)
+	default:
+		stdout := readRuntimeCommandSpoolTail(stdoutPath, runnerKey)
+		stderr := readRuntimeCommandSpoolTail(stderrPath, runnerKey)
+		if len(stdout) == 0 {
+			return stderr
+		}
+		if len(stderr) == 0 {
+			return stdout
+		}
+		return bytes.Join([][]byte{stdout, stderr}, []byte("\n"))
+	}
+}
+
+func readRuntimeCommandSpoolTail(path string, runnerKey string) []byte {
+	spool, err := os.Open(path)
+	if err != nil {
+		return nil
+	}
+	defer spool.Close()
+
+	info, err := spool.Stat()
+	if err != nil {
+		return nil
+	}
+	overlap := int64(0)
+	if runnerKey != "" {
+		overlap = int64(len(runnerKey) - 1)
+	}
+	start := info.Size() - int64(runtimeCommandDiagnosticBytes) - overlap
+	if start < 0 {
+		start = 0
+	}
+	if _, err := spool.Seek(start, io.SeekStart); err != nil {
+		return nil
+	}
+	var redacted bytes.Buffer
+	if err := copyRuntimeCommandOutput(
+		io.LimitReader(spool, int64(runtimeCommandDiagnosticBytes)+overlap),
+		&redacted,
+		runnerKey,
+	); err != nil {
+		return nil
+	}
+	content := redacted.Bytes()
+	if len(content) > runtimeCommandDiagnosticBytes {
+		content = content[len(content)-runtimeCommandDiagnosticBytes:]
+	}
+	return append([]byte(nil), content...)
+}
+
+func newRuntimeFailure(executionError error, output []byte, secrets ...string) error {
+	message := sanitizeRuntimeDiagnostic(string(output), secrets...)
+	clearAutopilotRunnerKeyBytes(output)
+
+	executionMessage := "unknown child-process failure"
+	if executionError != nil {
+		executionMessage = sanitizeRuntimeDiagnostic(executionError.Error(), secrets...)
+	}
+	if message == "" {
+		return fmt.Errorf("loadstrike runtime failed: %s", executionMessage)
+	}
+	return fmt.Errorf(
+		"loadstrike runtime failed: %s: %s",
+		executionMessage,
+		message,
+	)
 }
 
 func runAutopilotViaPrivateRuntime(request LoadStrikeAutopilotRequest) (LoadStrikeAutopilotResult, error) {

@@ -30,13 +30,19 @@ type stepRuntimeContext struct {
 	nodeInfo                  nodeInfo
 	testInfo                  testInfo
 	ScenarioInfo              LoadStrikeScenarioInfo
+	Partition                 scenarioPartitionInfo
+	CustomSettings            IConfiguration
+	GlobalCustomSettings      IConfiguration
 	Random                    *LoadStrikeRandom
 	ScenarioCancellationToken stdcontext.Context
 	scenarioCancel            stdcontext.CancelFunc
 	executionControl          *executionControl
 	scenarioTimerStarted      time.Time
 	stopRequested             bool
+	stopScenarioName          string
+	stopScenarioReason        string
 	stopCurrentTest           bool
+	stopCurrentTestReason     string
 }
 
 // scenarioStep is a single runnable unit inside a scenario.
@@ -91,11 +97,14 @@ func (c *stepRuntimeContext) StopScenario(args ...string) {
 			scenarioName = args[0]
 			reason = args[1]
 		}
+		effectiveScenarioName := firstNonBlank(strings.TrimSpace(scenarioName), c.ScenarioName)
 		c.stopRequested = true
+		c.stopScenarioName = effectiveScenarioName
+		c.stopScenarioReason = reason
 		if c.executionControl != nil {
-			c.executionControl.stopScenario(firstNonBlank(strings.TrimSpace(scenarioName), c.ScenarioName), reason)
+			c.executionControl.stopScenario(effectiveScenarioName, reason)
 		}
-		if c.scenarioCancel != nil && strings.EqualFold(strings.TrimSpace(firstNonBlank(scenarioName, c.ScenarioName)), c.ScenarioName) {
+		if c.scenarioCancel != nil && strings.EqualFold(strings.TrimSpace(effectiveScenarioName), c.ScenarioName) {
 			c.scenarioCancel()
 		}
 	}
@@ -105,6 +114,7 @@ func (c *stepRuntimeContext) StopScenario(args ...string) {
 func (c *stepRuntimeContext) StopCurrentTest(reason string) {
 	if c != nil {
 		c.stopCurrentTest = true
+		c.stopCurrentTestReason = reason
 		c.stopRequested = true
 		if c.executionControl != nil {
 			c.executionControl.stopTest(reason)
