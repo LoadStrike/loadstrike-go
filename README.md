@@ -6,7 +6,7 @@ Use it to define scenarios, execute named steps, apply load simulations and thre
 
 ## Requirements
 
-- Go 1.26.5 or later
+- Go 1.26.8 or later
 
 ## Install
 
@@ -16,17 +16,15 @@ go get loadstrike.com/sdk/go
 
 `loadstrike.com/sdk/go` is the public vanity module path served by the LoadStrike website and backed by the public `loadstrike/loadstrike-go` repository, so `go get` and pkg.go.dev resolve the same package surface.
 
-## v0.2.0 Breaking Migration
+## v0.2 Migration
 
-Before running workloads with v0.2.0:
+Go SDK v0.2.1 is the current maintenance release. It retains the v0.2 protocol and capability contract, raises the public module and runtime toolchain floor to Go 1.26.8, and includes dependency security updates. Before running workloads:
 
-1. Install Go 1.26.5 or later.
-2. Run `go get loadstrike.com/sdk/go@v0.2.0`.
+1. Install Go 1.26.8 or later.
+2. Run `go get loadstrike.com/sdk/go@v0.2.1`.
 3. Configure a valid runner key and run the workload; normal license validation remains required.
 
-After v0.2.0 is published, v0.1.x will remain on security-only support for at least 90 days. The v0.2.0 protocol and capability changes will not be backported to v0.1.x. The retained v0.1.30401 release already requires Go 1.26.5 or later, and the v0.2.0 release notes will state the deprecation window before v0.2.0 is promoted.
-
-This source change prepares the migration documentation only; it does not publish v0.2.0.
+The immutable v0.2.0 module metadata permits Go 1.26.5, but current users should update to Go 1.26.8 and v0.2.1. Following v0.2.0 publication, v0.1.x remains on security-only support for at least 90 days. The v0.2 protocol and capability changes will not be backported to v0.1.x. The retained v0.1.30401 release requires Go 1.26.5 or later.
 
 Import the package in your Go workload code with:
 

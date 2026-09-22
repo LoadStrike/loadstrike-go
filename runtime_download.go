@@ -543,11 +543,15 @@ func writeRuntimeManifestSidecar(
 }
 
 func (r runtimeArtifactResolver) fetchRuntimeManifest(runnerKey string) (runtimeArtifactManifest, error) {
-	transportPolicy, err := r.transportPolicy()
+	artifactTransportPolicy, err := r.transportPolicy()
 	if err != nil {
 		return runtimeArtifactManifest{}, err
 	}
-	resolveURL, err := transportPolicy.validateResolveURL(r.endpoint())
+	resolveTransportPolicy, err := r.resolveTransportPolicy()
+	if err != nil {
+		return runtimeArtifactManifest{}, err
+	}
+	resolveURL, err := resolveTransportPolicy.validateResolveURL(r.endpoint())
 	if err != nil {
 		return runtimeArtifactManifest{}, err
 	}
@@ -592,7 +596,7 @@ func (r runtimeArtifactResolver) fetchRuntimeManifest(runnerKey string) (runtime
 	if err := validateRuntimeResponseURL(
 		response,
 		resolveURL,
-		transportPolicy,
+		resolveTransportPolicy,
 		"runtime artifact resolve",
 	); err != nil {
 		return runtimeArtifactManifest{}, err
@@ -623,7 +627,7 @@ func (r runtimeArtifactResolver) fetchRuntimeManifest(runnerKey string) (runtime
 	if err != nil {
 		return runtimeArtifactManifest{}, err
 	}
-	if _, err := transportPolicy.validateArtifactURL(
+	if _, err := artifactTransportPolicy.validateArtifactURL(
 		manifest.Claims.DownloadURL,
 	); err != nil {
 		return runtimeArtifactManifest{}, err
@@ -635,7 +639,7 @@ func (r runtimeArtifactResolver) endpoint() string {
 	if strings.TrimSpace(r.resolveEndpoint) != "" {
 		return r.resolveEndpoint
 	}
-	return buildURL(defaultLicenseValidationBaseURL, "/api/v1/runtime-artifacts/resolve")
+	return runtimeResolveEndpoint()
 }
 
 func (r runtimeArtifactResolver) client() *http.Client {
@@ -660,7 +664,16 @@ func (r runtimeArtifactResolver) transportPolicy() (runtimeTransportPolicy, erro
 		}
 		return newRuntimeTransportPolicy(r.resolveEndpoint, true)
 	}
-	return newRuntimeTransportPolicy(defaultLicenseValidationBaseURL, false)
+	return newRuntimeTransportPolicy(runtimeManifestProductionOrigin, false)
+}
+
+func (r runtimeArtifactResolver) resolveTransportPolicy() (runtimeTransportPolicy, error) {
+	if strings.TrimSpace(r.resolveEndpoint) != "" || r.httpClient != nil {
+		return r.transportPolicy()
+	}
+	baseURL := resolveLicensingAPIBaseURL()
+	allowLoopbackHTTP := isGoTestBinary() || strings.TrimSpace(blackboxLicensingAPIBaseURLToken) != ""
+	return newRuntimeTransportPolicy(baseURL, allowLoopbackHTTP)
 }
 
 func (r runtimeArtifactResolver) currentTime() time.Time {
