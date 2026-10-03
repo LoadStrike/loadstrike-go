@@ -63,7 +63,7 @@ func runViaPrivateRuntime(contextState *contextState, registry *runtimeCallbackR
 		Version: RuntimeArtifactVersion(),
 		GOOS:    runtimeGOOS(),
 		GOARCH:  runtimeGOARCH(),
-	}).resolveRuntimeExecution(contextState.RunnerKey)
+	}).resolveRuntimeExecution(contextState.RunnerKey, contextState.NodeType == NodeTypeAgent && strings.TrimSpace(contextState.NatsServerURL) != "")
 	if err != nil {
 		return runResult{}, err
 	}

@@ -131,9 +131,10 @@ func verifyRuntimeArtifactFile(path string, expectedSHA256 string) error {
 	return nil
 }
 
-func (r runtimeArtifactResolver) resolveRuntimePath(runnerKey string) (string, error) {
+func (r runtimeArtifactResolver) resolveRuntimePath(runnerKey string, agentCachedOnly ...bool) (string, error) {
 	runnerKey = strings.TrimSpace(runnerKey)
-	if runnerKey == "" {
+	cachedOnly := len(agentCachedOnly) > 0 && agentCachedOnly[0] && runnerKey == ""
+	if runnerKey == "" && !cachedOnly {
 		return "", errors.New("runner key is required to resolve the compatible execution component")
 	}
 	if _, err := configuredRuntimePublisherKeyring(); err != nil {
@@ -172,11 +173,16 @@ func (r runtimeArtifactResolver) resolveRuntimePath(runnerKey string) (string, e
 				); err == nil {
 					return expectedPath, nil
 				}
-				return r.downloadAndInstallRuntime(manifest)
+				if !cachedOnly {
+					return r.downloadAndInstallRuntime(manifest)
+				}
 			}
 		}
 	}
 
+	if cachedOnly {
+		return "", errors.New("Agent requires a preinstalled runtime with a valid publisher signature and artifact hash; provision it through an authorized coordinator first")
+	}
 	manifest, err := r.fetchRuntimeManifest(runnerKey)
 	if err != nil {
 		return "", err
@@ -215,8 +221,9 @@ func (r runtimeArtifactResolver) resolveRuntimePath(runnerKey string) (string, e
 
 func (r runtimeArtifactResolver) resolveRuntimeExecution(
 	runnerKey string,
+	agentCachedOnly ...bool,
 ) (*resolvedRuntimeExecution, error) {
-	runtimePath, err := r.resolveRuntimePath(runnerKey)
+	runtimePath, err := r.resolveRuntimePath(runnerKey, agentCachedOnly...)
 	if err != nil {
 		return nil, err
 	}

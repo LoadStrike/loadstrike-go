@@ -492,7 +492,7 @@ func (c *contextState) Run(args ...string) (runResult, error) {
 	if err := applyRunArgs(c, args); err != nil {
 		return runResult{}, err
 	}
-	if strings.TrimSpace(c.RunnerKey) == "" {
+	if strings.TrimSpace(c.RunnerKey) == "" && (c.NodeType != NodeTypeAgent || strings.TrimSpace(c.NatsServerURL) == "") {
 		return runResult{}, fmt.Errorf("Runner key is required. Call WithRunnerKey(...) before Run().")
 	}
 

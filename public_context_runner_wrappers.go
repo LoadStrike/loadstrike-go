@@ -144,6 +144,18 @@ func (c loadStrikeContext) WithAgentGroup(agentGroup string) LoadStrikeContext {
 	return c
 }
 
+// WithAgentID identifies this separately launched V2 agent.
+func (c loadStrikeContext) WithAgentID(agentID string) LoadStrikeContext {
+	requireNativeContext(c.nativeValue()).WithAgentID(agentID)
+	return c
+}
+
+// WithExpectedAgentIDs declares the exact remote V2 participant set.
+func (c loadStrikeContext) WithExpectedAgentIDs(agentIDs ...string) LoadStrikeContext {
+	requireNativeContext(c.nativeValue()).WithExpectedAgentIDs(agentIDs...)
+	return c
+}
+
 // Sets the NATS server URL used for distributed cluster coordination.
 // Use this when coordinator and agent nodes communicate over NATS.
 func (c loadStrikeContext) WithNatsServerUrl(serverURL string) LoadStrikeContext {
