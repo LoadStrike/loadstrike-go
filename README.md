@@ -18,15 +18,15 @@ go get loadstrike.com/sdk/go
 
 ## v0.2 Migration
 
-Go SDK v0.2.1 is the current maintenance release. It retains the v0.2 protocol and capability contract, raises the public module and runtime toolchain floor to Go 1.26.8, and includes dependency security updates. Before running workloads:
+The Go SDK v0.2.2 release pair retains protocol 2 and the Go 1.26.8 toolchain floor. It adds separately launched NATS agents and remote multi-process Load Engine V2, plus event-stream consumer, distributed reporting, sink lifecycle, and pause-scheduling corrections. Before running workloads:
 
 1. Install Go 1.26.8 or later.
-2. Run `go get loadstrike.com/sdk/go@v0.2.1`.
+2. After both the v0.2.2 wrapper and its matching signed runtime are published, run `go get loadstrike.com/sdk/go@v0.2.2`.
 3. Configure a valid runner key and run the workload; normal license validation remains required.
 
-The separate-agent and remote Load Engine V2 support described below is implemented in the current source and requires a corresponding updated private runtime release. The immutable published v0.2.1 runtime predates these changes; updating the public wrapper alone does not add them to that runtime. Existing release tags and runtime artifacts are unchanged.
+The separate-agent and remote Load Engine V2 support described below requires the matching v0.2.2 signed runtime. The immutable published v0.2.1 runtime predates these changes; updating the public wrapper alone does not add them to that runtime. Existing release tags and runtime artifacts remain unchanged.
 
-The immutable v0.2.0 module metadata permits Go 1.26.5, but current users should update to Go 1.26.8 and v0.2.1. Following v0.2.0 publication, v0.1.x remains on security-only support for at least 90 days. The v0.2 protocol and capability changes will not be backported to v0.1.x. The retained v0.1.30401 release requires Go 1.26.5 or later.
+The immutable v0.2.0 module metadata permits Go 1.26.5; v0.2.1 and v0.2.2 require Go 1.26.8. Following v0.2.0 publication, v0.1.x remains on security-only support for at least 90 days. The v0.2 protocol and capability changes will not be backported to v0.1.x. The retained v0.1.30401 release requires Go 1.26.5 or later.
 
 Import the package in your Go workload code with:
 
@@ -242,7 +242,7 @@ A separate NATS agent may omit its runner key only when a compatible publisher-s
 
 ## Separate Agent Processes
 
-This section describes the updated source implementation and requires its corresponding private runtime release; it is not a capability claim for the immutable published v0.2.1 runtime.
+This section requires the v0.2.2 wrapper and matching signed runtime; it is not a capability claim for the immutable published v0.2.1 runtime.
 
 Run the same application and selected scenario definitions in each agent process and in the coordinator. Configure a reachable NATS server, the same explicit `SessionId`, `ClusterId`, and `AgentGroup`, and a unique stable `AgentId` for each agent. The remote V2 coordinator requires `ExpectedAgentIds` with exactly `AgentsCount` distinct IDs. Use `WithAgentID(...)` and `WithExpectedAgentIDs(...)` on a context, or their JSON configuration keys. The context NATS method is `WithNatsServerUrl(...)`.
 
