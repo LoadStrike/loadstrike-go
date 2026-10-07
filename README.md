@@ -18,10 +18,10 @@ go get loadstrike.com/sdk/go
 
 ## v0.2 Migration
 
-The Go SDK v0.2.2 release pair retains protocol 2 and the Go 1.26.8 toolchain floor. It adds separately launched NATS agents and remote multi-process Load Engine V2, plus event-stream consumer, distributed reporting, sink lifecycle, and pause-scheduling corrections. Before running workloads:
+The Go SDK v0.2.3 maintenance release pair retains protocol 2 and the Go 1.26.8 toolchain floor, with reporting, sink delivery, and distributed execution corrections. The v0.2.2 release introduced separately launched NATS agents and remote multi-process Load Engine V2. Before running workloads:
 
 1. Install Go 1.26.8 or later.
-2. After both the v0.2.2 wrapper and its matching signed runtime are published, run `go get loadstrike.com/sdk/go@v0.2.2`.
+2. After both the v0.2.3 wrapper and its matching signed runtime are published, run `go get loadstrike.com/sdk/go@v0.2.3`.
 3. Configure a valid runner key and run the workload; normal license validation remains required.
 
 The separate-agent and remote Load Engine V2 support described below requires the matching v0.2.2 signed runtime. The immutable published v0.2.1 runtime predates these changes; updating the public wrapper alone does not add them to that runtime. Existing release tags and runtime artifacts remain unchanged.
