@@ -582,12 +582,18 @@ func validateRuntimeManifestV2Claims(
 		!runtimeCanonicalToolchainPattern.MatchString(claims.Toolchain) {
 		return errors.New("runtime manifest toolchain is not canonical")
 	}
-	if strings.HasPrefix(claims.RuntimeVersion, "v0.2.") &&
-		claims.Toolchain != runtimeManifestV02Toolchain {
-		return errors.New(
-			"runtime manifest toolchain mismatch: v0.2 artifacts require " +
-				runtimeManifestV02Toolchain,
-		)
+	if strings.HasPrefix(claims.RuntimeVersion, "v0.2.") {
+		requiredToolchain := runtimeManifestV02Toolchain
+		if claims.RuntimeVersion == "v0.2.4" {
+			requiredToolchain = "go1.26.11"
+		}
+		if claims.Toolchain != requiredToolchain {
+			return fmt.Errorf(
+				"runtime manifest toolchain mismatch: %s requires %s",
+				claims.RuntimeVersion,
+				requiredToolchain,
+			)
+		}
 	}
 	if !runtimeCanonicalAttestationPattern.MatchString(
 		claims.AttestationDigest,

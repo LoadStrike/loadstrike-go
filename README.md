@@ -6,7 +6,7 @@ Use it to define scenarios, execute named steps, apply load simulations and thre
 
 ## Requirements
 
-- Go 1.26.8 or later
+- Go 1.26.11 or later
 
 ## Install
 
@@ -18,15 +18,15 @@ go get loadstrike.com/sdk/go
 
 ## v0.2 Migration
 
-The Go SDK v0.2.3 maintenance release pair retains protocol 2 and the Go 1.26.8 toolchain floor, with reporting, sink delivery, and distributed execution corrections. The v0.2.2 release introduced separately launched NATS agents and remote multi-process Load Engine V2. Before running workloads:
+Go SDK v0.2.4 includes dependency security updates and requires Go 1.26.11 or later. The v0.2.2 release introduced separately launched NATS agents and remote multi-process Load Engine V2. Before running workloads:
 
-1. Install Go 1.26.8 or later.
-2. After both the v0.2.3 wrapper and its matching signed runtime are published, run `go get loadstrike.com/sdk/go@v0.2.3`.
+1. Install Go 1.26.11 or later.
+2. After v0.2.4 is published, run `go get loadstrike.com/sdk/go@v0.2.4`.
 3. Configure a valid runner key and run the workload; normal license validation remains required.
 
-The separate-agent and remote Load Engine V2 support described below requires the matching v0.2.2 signed runtime. The immutable published v0.2.1 runtime predates these changes; updating the public wrapper alone does not add them to that runtime. Existing release tags and runtime artifacts remain unchanged.
+The separate-agent and remote Load Engine V2 support described below requires Go SDK v0.2.2 or later and its matching signed runtime. The immutable published v0.2.1 runtime predates these changes; updating the public wrapper alone does not add them to that runtime. Existing release tags and runtime artifacts remain unchanged.
 
-The immutable v0.2.0 module metadata permits Go 1.26.5; v0.2.1 and v0.2.2 require Go 1.26.8. Following v0.2.0 publication, v0.1.x remains on security-only support for at least 90 days. The v0.2 protocol and capability changes will not be backported to v0.1.x. The retained v0.1.30401 release requires Go 1.26.5 or later.
+The immutable v0.2.0 module metadata permits Go 1.26.5; v0.2.1 through v0.2.3 require Go 1.26.8. Following v0.2.0 publication, v0.1.x remains on security-only support for at least 90 days. The v0.2 protocol and capability changes will not be backported to v0.1.x. The retained v0.1.30401 release requires Go 1.26.5 or later.
 
 Import the package in your Go workload code with:
 
